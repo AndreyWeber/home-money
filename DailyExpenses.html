@@ -1,0 +1,140 @@
+<!-- Style sheet for datepicker -->
+<link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.0/themes/smoothness/jquery-ui.css" />
+<!-- Style sheet for daily expenses pop-up -->
+<style>
+  div { font: 13px arial, sans-serif; }
+  
+  div#chosenDateExpenses {
+    border-bottom: 3px double black;
+    padding: 0px 0px 4px 3px;
+  }
+  
+  td { padding: 0px 4px 3px 1px; }
+  
+  input {
+    border: 1px solid gray;
+    height: 26px;
+    width: 60px;
+  }
+  
+  input#datepicker {
+    height: 20px;
+    width: 75px;
+    font-weight: bold;
+    background: white;
+  }
+  
+  span.loading {
+    color: green;
+    font-style: italic;
+  }
+
+  /* Datepicker customization */
+  .ui-datepicker {  
+    width: 216px;  
+    height: auto;
+    margin: 5px auto 0;  
+    font: 9pt Arial, sans-serif;  
+    -webkit-box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, .5);  
+    -moz-box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, .5);  
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, .5);
+  }
+  
+  .ui-datepicker-trigger {
+	cursor: pointer;
+    vertical-align: bottom;
+	margin: 0px 0px 4px 3px;
+  }
+</style>
+
+<!-- Daily expenses pop-up markup -->
+<div>
+   <p><span>Текущая дата:&nbsp;</span><span id="currentDate"><b></b></span></p>
+   <div id="chosenDateExpenses">Расходы за выбранную дату:&nbsp;<input disabled type="text" id="datepicker"></div>
+   <table border="0">
+      <tr>
+         <td>Действительные расходы:</td>
+         <td id="actualExpenses"><span class="loading">Loading...</span></td>
+      </tr>
+      <tr>
+         <td>Предполагаемые расходы:</td>
+         <td id="expectedExpenses"><span class="loading">Loading...</span></td>
+      </tr>
+      <tr>
+         <td>Перерасход:</td>
+         <td id="overrun"><span class="loading">Loading...</span></td>
+      </tr>
+   </table>
+</div>
+<br>
+<div><input type="button" value="OK" onclick="google.script.host.close()" /></div>
+
+<!-- jQuery and jQuery UI scripts references -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.0/jquery-ui.min.js"></script>
+
+<!-- Daily expenses pop-up scripts -->
+<script>
+// The code in this function runs when the page is loaded.
+$(function() {
+  var calendarGifUrl = "https://drive.google.com/file/d/0B4mgR__W7bvqNUxkRGtDdl8xM3M/view?usp=sharing"
+  var currentDateText = dateToFormattedString(new Date());
+  
+  $("#currentDate").html('<b>' + currentDateText + '</b>');
+
+  // Datepicker setup
+  $('#datepicker').datepicker({
+    showOn: "button",
+    buttonImage: calendarGifUrl,
+    buttonImageOnly: true,
+    onSelect: onDatepickerSelect 
+  });
+  $('#datepicker').datepicker("setDate", currentDateText);
+  $('#datepicker').datepicker("option", "buttonText", "Выберите дату");
+  $('#datepicker').datepicker("option", "showAnim", "slideDown");
+
+  // Show daily expenses
+  google.script.run.withSuccessHandler(showExpenses)
+                   .getDailyExpensesData(currentDateText, false);
+});
+
+var dateToFormattedString = function(dt) {
+  if (!dt) {
+    throw new Error("Parametr dt is undefined.");
+  }
+  
+  return dt.getMonth() + 1 + "/" + dt.getDate() + "/" + dt.getFullYear();
+};
+
+var showExpenses = function(expensesData) {
+  var actualExpensesCell = $("#actualExpenses");
+  var expectedExpensesCell = $("#expectedExpenses");
+  var overrunCell = $("#overrun");
+  
+  actualExpensesCell.empty();
+  expectedExpensesCell.empty();
+  overrunCell.empty();
+  
+  actualExpensesCell.append('<b>' + expensesData.sumActual + '</b>');
+  expectedExpensesCell.append('<b>' + expensesData.sumExpected + '</b>');
+  overrunCell.append('<b>' + expensesData.overrun + '</b>');
+}
+
+var onDatepickerSelect = function(dateText, inst) {
+  var actualExpensesCell = $("#actualExpenses");
+  var expectedExpensesCell = $("#expectedExpenses");
+  var overrunCell = $("#overrun");
+  
+  actualExpensesCell.empty();
+  expectedExpensesCell.empty();
+  overrunCell.empty();
+  
+  var msg = '<span class="loading">Loading...</span>';
+  actualExpensesCell.append(msg);
+  expectedExpensesCell.append(msg);
+  overrunCell.append(msg);
+
+  google.script.run.withSuccessHandler(showExpenses)
+                   .getDailyExpensesData(dateText, false);
+}
+</script>

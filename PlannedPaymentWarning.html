@@ -1,0 +1,42 @@
+<style>
+  div {
+    font: 13px arial, sans-serif;
+  }
+  
+  td {
+    padding: 7 7 7 5;
+  }
+  
+  td.bold {
+    font-weight: bold;
+  }
+  
+  input {
+    border: 1px solid gray;
+    height: 28px;
+    width: 58px;
+  }
+</style>
+
+<div>
+<table>
+  <tr>
+    <td>СИМВОЛ : Категория:</td>
+    <td class="bold"><?= data.transactionSymbol ?></td>
+  </tr>
+  <tr>
+    <td>Сумма по комментарию будет:</td>
+    <td class="bold"><?= data.noteMoneySum ?></td>
+  </tr>
+  <tr>
+    <td>Сумма в транзакции:</td>
+    <td class="bold"><?= data.transactionValue ?></td>
+  </tr>
+  <tr>
+    <td>Дата транзакции:</td>
+    <td class="bold"><?= data.transactionTimestamp ?></td>
+  </tr>
+</table>
+</div>
+<br>
+<div><input type="button" value="OK" onclick="google.script.host.close()" /></div>
