@@ -3,3 +3,10 @@
 
 # App Script files
 appsscript.json
+
+# VS code settings
+settings.json
+
+# NodeJS
+node_modules
+package-lock.json
