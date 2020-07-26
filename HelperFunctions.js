@@ -97,9 +97,8 @@ function normalizeHeader(header) {
 // Returns true if the cell where cellData was read from is empty.
 // Arguments:
 //   - cellData: string
-function isCellEmpty(cellData) {
-  return typeof(cellData) == "string" && cellData == "";
-}
+const isCellEmpty = cellData =>
+  typeof(cellData) === "string" && cellData === EMPTY_STRING;
 
 // Returns true if the character char is alphabetical, false otherwise.
 function isAlnum(char) {
@@ -121,6 +120,7 @@ function isDigit(char) {
 // Arguments:
 //  - array: array to flatten
 // Returns array.
+// TODO: Use Array.prototype.flat()
 function flattenArray(array) {
   var result = [];
   function traverse(arr) {
@@ -133,7 +133,7 @@ function flattenArray(array) {
     }
   }
   traverse(array);
-  
+
   return result;
 }
 
@@ -142,15 +142,16 @@ function flattenArray(array) {
 //  - dataArray: array of spreadsheet data to search for
 //  - isProperValue: predicate to fit data array value for
 // Returns: integer
+// TODO: Use Array.prototype.findIndex()
 function findValueIndex(dataArray, isProperValue) {
   function iter(idx) {
     if (dataArray.length == 0) {
       return 0;
     }
-    
+
     return isProperValue(dataArray.shift()) ? idx : iter(idx + 1);
   }
-  
+
   return iter(1);
 }
 
@@ -158,64 +159,33 @@ function findValueIndex(dataArray, isProperValue) {
 // Arguments:
 //   - n: value to test
 // Returns boolean.
-function isNumber(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
+const isNumber = (n) => !isNaN(parseFloat(n)) && isFinite(n);
+
+/**
+ * Throws new Error with provided message
+ * @param {String} msg
+ */
+const _throwErr = (msg) => { throw new Error(msg || "Unexpected error occured") };
 
 // Convert date to UTC format.
 // Argumetns:
 //   - dt: date to convert
 // Returns date in UTC format.
-function dateAsUtc(dt) {
-  if (!dt) {
-    throw new Error("Parameter dt is undefined.");
-  }
-  
-  return Date.UTC(dt.getFullYear(), dt.getMonth() + 1, dt.getDate());
-}
+// TODO: _throwErr won't be correctly called
+const dateAsUtc = (dt) =>
+    Date.UTC(dt.getFullYear(), dt.getMonth() + 1, dt.getDate()) ||
+    _throwErr("Can't convert date to UTC. Probably 'dt' argument is undefined");
 
 // Convert date to formatted string by next pattern "mm/dd/YYYY"
 // Arguments:
 //   - dt: date to convert
 // Returns string.
-function dateToFormattedString(dt) {
-  if (!dt) {
-    throw new Error("Parameter dt is undefined.");
-  }
-  
-  return dt.getMonth() + 1 + "/" + dt.getDate() + "/" + dt.getFullYear();
-}
+// TODO: _throwErr won't be correctly called
+const dateToFormattedString = (dt) =>
+    `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()}` ||
+    _throwErr("Can't format date as string. Probably 'dt' argument is undefined.");
 
-function dateTimeToFormattedString(dt) {
-  if (!dt) {
-    throw new Error("Parameter dt is undefined.");
-  }
-  
-  return dt.getMonth() + 1 + "/" + dt.getDate() + "/" + dt.getFullYear() + " " +
-    dt.getHours() + ":" + dt.getMinutes() + ":" + dt.getSeconds();
-}
-
-// stringIsNotEmpty checks if input string is not empty
-// Arguments:
-//   - v: input string to check
-// Returns string
-function stringIsNotEmpty(v) {
-  if (typeof(v) != "string") {
-    throw new TypeError();
-  }
-  
-  return v === "" ? false : true;
-  
-}
-
-// sprintf prints formatted string where all entries of %s placeholder will be substituted with
-// one of the provided parameters.
-// Arguments:
-//   - format: string to format
-//   - etc: parameters which will substitute all %s placeholders in format string
-// Returns string.
-function sprintf(format, etc) {
-    var arg = arguments;
-    var i = 1;
-    return format.replace(/%((%)|s)/g, function (m) { return m[2] || arg[i++] })
-}
+// TODO: _throwErr won't be correctly called
+const dateTimeToFormattedString = (dt) =>
+    `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()} ${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}` ||
+    _throwErr("Can't format date/time as string Probably 'dt' argument is undefined");

@@ -26,7 +26,7 @@
  * transactions processing.
  */
 function onOpen() {
-  // Create transactions menu entries  
+  // Create transactions menu entries
   SpreadsheetApp.getUi()
     .createMenu('Transactions')
     .addItem('Process Transactions', 'processTransactions')
@@ -42,25 +42,27 @@ function onOpen() {
 /**
  * Shows daily expenses for the chosen date.
  */
-function showDailyExpenses() {  
+function showDailyExpenses() {
   // Create HTML to show
   var html = HtmlService.createHtmlOutputFromFile('DailyExpenses')
     .setSandboxMode(HtmlService.SandboxMode.IFRAME);
-  
+
   // Show HTML
   SpreadsheetApp.getUi()
     .showModalDialog(html, DAILY_EXPENSES_DATA_TITLE);
 }
 
 /**
- * Show sidebar with the list of transactions history entries for a 
+ * Try to show sidebar with the list of transactions history entries for a
  * cell currently selected on the Summary Balance tab.
  */
 function showTransactionsHistorySidebar() {
-  var html = HtmlService.createHtmlOutputFromFile('TransactionsHistorySidebar')
+  var html = HtmlService
+    .createHtmlOutputFromFile('TransactionsHistorySidebar')
     .setTitle('Transactions History');
-  
-  SpreadsheetApp.getUi()
+
+  SpreadsheetApp
+    .getUi()
     .showSidebar(html);
 }
 
@@ -70,29 +72,29 @@ function showTransactionsHistorySidebar() {
 function getDailyExpensesData(dateToShow, includePlanned) {
   // Get active spreadsheet
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  
+
   // Get raw transactions data collection
-  var rawDataSheet = ss.getSheetByName(RAW_DATA_SHEET_NAME);
+  var rawDataSheet = ss.getSheetByName(Sheets.RAW_DATA);
   var rawData = getRowsData(rawDataSheet);
-  
+
   // Calculate actual daily expenses value
   var dailyExpensesSumActual = 0;
   for (var i = 0; i < rawData.length; i++) {
     // Skip row if its date doesn't match specified date
     if (dateAsUtc(rawData[i].dateOfTransaction) != dateAsUtc(new Date(dateToShow))) {
       continue;
-    }    
+    }
     // Skip row if it is not required to include planned payment values in result
     if (!includePlanned && rawData[i].plannedPayment) {
       continue;
     }
-    
+
     dailyExpensesSumActual += rawData[i].value;
   }
-  
+
   // Get expected daily expenses value
-  var summaryBalanceSheet = ss.getSheetByName(SUMMARY_BALANCE_SHEET_NAME);
-   
+  var summaryBalanceSheet = ss.getSheetByName(Sheets.SUMMARY_BALANCE);
+
   var rowNum = findValueIndex(flattenArray(summaryBalanceSheet.getSheetValues(1, 1, summaryBalanceSheet.getMaxRows(), 1)),
                               function(value) { return (value == FREE_DAILY_CASH_DATA_TITLE) ? true : false; });
   var colNum = findValueIndex(flattenArray(summaryBalanceSheet.getRange(rowNum + 1, 1, 1, summaryBalanceSheet.getMaxColumns()).getValues()),
@@ -114,7 +116,7 @@ function getDailyExpensesData(dateToShow, includePlanned) {
 //   - tranTimeStamp: transaction timestamp
 //   - noteMoneySum: sum of money values from cell note
 // Returns void.
-function showPlannedPaymentWarning(tranSymbol, tranValue, tranTimeStamp, noteMoneySum) {  
+function showPlannedPaymentWarning(tranSymbol, tranValue, tranTimeStamp, noteMoneySum) {
   // Create template and set data
   var template = HtmlService.createTemplateFromFile('PlannedPaymentWarning');
   template.data = {
@@ -123,37 +125,46 @@ function showPlannedPaymentWarning(tranSymbol, tranValue, tranTimeStamp, noteMon
     transactionValue: tranValue,
     transactionTimestamp: tranTimeStamp
   };
-  
+
   // Create HTML to show
   var html = template.evaluate();
   html.setTitle(PLANNED_PAYMENT_WARNING_TITLE);
   html.setHeight(180);
   html.setWidth(500);
-  
+
   // Show HTML
-  var ss = SpreadsheetApp.getActiveSpreadsheet();  
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
   ss.show(html);
 }
 
 /**
- *
+ * Get transactions history stored on "Transactions History" tab
+ * Cells on "Summary Balance" are mapped to the same cells in
+ * "Transactions History" tab to store history in JSON format
+ * @returns {Object}
  */
-function getTransactionsHistoryData() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  var activeSheet = ss.getActiveSheet();
-  
-  var activeSheetName = activeSheet.getName();  
-  if (activeSheetName === SUMMARY_BALANCE_SHEET_NAME) {
-    var activeCellA1Notation = activeSheet.getActiveCell().getA1Notation();
-    var jsonStr = ss.getSheetByName(TRANSACTIONS_HISTORY).getRange(activeCellA1Notation).getValue();
+const getTransactionsHistoryData = () => {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const activeSheet = ss.getActiveSheet();
+
+  if (activeSheet.getName() === Sheets.SUMMARY_BALANCE) {
+    const activeCellA1Notation = activeSheet
+      .getActiveCell()
+      .getA1Notation();
+    const jsonStr = ss
+      .getSheetByName(Sheets.TRANSACTIONS_HISTORY)
+      .getRange(activeCellA1Notation)
+      .getValue();
+
+    // Return result
     return {
       isSummaryBalanceSheet: true,
       jsonCellA1Notation: activeCellA1Notation,
       json: jsonStr
     };
   }
-  
+
+  // Return default value
   return {
     isSummaryBalanceSheet: false,
     jsonCellA1Notation: null,
@@ -178,21 +189,21 @@ function createCellNote(existingNote, dateToAdd, valueToAdd, noteToAdd, isPlanne
   if (!noteToAdd && !isPlanned) {
     return existingNote;
   }
-  
+
   // If existing note is not empty add line feed to the end
   if (existingNote) {
     existingNote += "\u000A";
   }
-  
+
   // Return cell note depending on belongs it to planned payment or not
   if (isPlanned) {
     return existingNote += !noteToAdd
-                              ? sprintf("%s: %s - потрачено", dateToFormattedString(dateToAdd), valueToAdd)
-                              : sprintf("%s: %s - %s - потрачено", dateToFormattedString(dateToAdd), valueToAdd, noteToAdd);
+      ? `${dateToFormattedString(dateToAdd)}: ${valueToAdd} - потрачено`
+      : `${dateToFormattedString(dateToAdd)}: ${valueToAdd} - ${noteToAdd} - потрачено`;
   }
-  
-  // Return enhanced cell note if noteToAdd is not empty  
-  return existingNote += sprintf("%s: %s - %s", dateToFormattedString(dateToAdd), valueToAdd, noteToAdd);
+
+  // Return enhanced cell note if noteToAdd is not empty
+  return existingNote += `${dateToFormattedString(dateToAdd)}: ${valueToAdd} - ${noteToAdd}`;
 }
 
 // calculateCellNoteMoneySum calculates sum of money values provided in the cell note.
@@ -211,7 +222,7 @@ function calculateCellNoteMoneySum(cellNote) {
       result += Number(noteTokens[i]);
     }
   }
-  
+
   return result;
 }
 
@@ -221,14 +232,14 @@ function calculateCellNoteMoneySum(cellNote) {
 //   - cellNote: note of the cell
 //   - cellValue: value of the cell
 // Returns string.
-function calculateCellBackgroung(cellNote, cellValue) {  
+function calculateCellBackgroung(cellNote, cellValue) {
   if (!cellNote || !cellValue) {
     return CELL_BACKGROUND_COLOR.noFill;
   }
-  
-  // Calculate sum of money values provided in the cell note  
-  var noteMoneySum = calculateCellNoteMoneySum(cellNote);  
-  
+
+  // Calculate sum of money values provided in the cell note
+  var noteMoneySum = calculateCellNoteMoneySum(cellNote);
+
   // Calculate cell background color
   if (noteMoneySum == 0) {
     // Return red color if note doesn't contain money value
@@ -252,10 +263,13 @@ function calculateCellBackgroung(cellNote, cellValue) {
 //   - rawDataSheet: reference on Raw Data sheet
 //   - timeStamp: time stamp of data record on Raw Data sheet
 // Returns void.
-function deleteTransaction(rawDataSheet, timeStamp) {  
+function deleteTransaction(rawDataSheet, timeStamp) {
   // Get number of row to delete
-  var rowNum = findValueIndex(flattenArray(rawDataSheet.getSheetValues(1, 1, rawDataSheet.getMaxRows(), 1)),
-                              function(value) { return (+value === +timeStamp) ? true : false; });
+  var rowNum = findValueIndex(
+    flattenArray(rawDataSheet.getSheetValues(1, 1, rawDataSheet.getMaxRows(), 1)),
+    (value) => +value === +timeStamp
+  );
+
   if (rowNum !== 0) {
     rawDataSheet.deleteRow(rowNum);
   }
@@ -265,34 +279,42 @@ function deleteTransaction(rawDataSheet, timeStamp) {
  * Write transactions history data to an appropriate cell on Transactions History sheet
  */
 function addTransationHistoryRow(rawDataRow, summaryBalanceSheet, transactionsHistorySheet) {
-  var rowNum = findValueIndex(flattenArray(summaryBalanceSheet.getSheetValues(1, 1, summaryBalanceSheet.getMaxRows(), 1)),
-                              function(value) { return value === rawDataRow.symbol.split(" : ")[0]; });
- 
-  var colNum = findValueIndex(flattenArray(summaryBalanceSheet.getRange(rowNum, 1, 1, summaryBalanceSheet.getMaxColumns()).getValues()),
-                              function(value) { return value.toString() === EMPTY_STRING; }) - 1;
-  
-  var cell = transactionsHistorySheet.getRange(rowNum, colNum).getCell(1, 1);
-  
-  var cellValue = cell.getValue();
-  
-  var jsonObj = cellValue ? JSON.parse(cellValue) : null; // TODO: check if cellValue exists but cannot be parsed at least if it's empty string or "null" or "undefined" string
+  // TODO: Probably can be simplified
+  const rowNum = findValueIndex(
+    flattenArray(summaryBalanceSheet.getSheetValues(1, 1, summaryBalanceSheet.getMaxRows(), 1)),
+    (value) => value === rawDataRow.symbol.split(" : ")[0]
+  );
+
+  const colNum = findValueIndex(
+    flattenArray(summaryBalanceSheet.getRange(rowNum, 1, 1, summaryBalanceSheet.getMaxColumns()).getValues()),
+    (value) => value.toString() === EMPTY_STRING
+  ) - 1;
+
+  // TODO: Can be simplified to getRange(rowNum, colNum) only. Should be tested
+  const cell = transactionsHistorySheet
+    .getRange(rowNum, colNum)
+    .getCell(1, 1);
+
+  const cellValue = cell.getValue();
+
+  let jsonObj = cellValue ? JSON.parse(cellValue) : null; // TODO: check if cellValue exists but cannot be parsed at least if it's empty string or "null" or "undefined" string
   if (jsonObj) {
     if (jsonObj instanceof Array) {
       jsonObj.push(rawDataRow);
     } else {
-      var arr = [];
+      const arr = [];
       arr.push(jsonObj);
       arr.push(rawDataRow);
-      
+
       jsonObj = arr;
-    }    
+    }
   } else {
     jsonObj = [];
     jsonObj.push(rawDataRow);
   }
-  
-  var jsonStr = JSON.stringify(jsonObj);
-  
+
+  const jsonStr = JSON.stringify(jsonObj);
+
   cell.setValue(jsonStr);
 }
 
@@ -302,14 +324,14 @@ function addTransationHistoryRow(rawDataRow, summaryBalanceSheet, transactionsHi
 function processTransactions() {
   // Get active spreadsheet
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  
+
   // Get raw transactions data collection
-  var rawDataSheet = ss.getSheetByName(RAW_DATA_SHEET_NAME);
+  var rawDataSheet = ss.getSheetByName(Sheets.RAW_DATA);
   var rawData = getRowsData(rawDataSheet);
-  
+
   // Process raw transactions data
-  var summaryBalanceSheet = ss.getSheetByName(SUMMARY_BALANCE_SHEET_NAME);
-  var transactionsHistorySheet = ss.getSheetByName(TRANSACTIONS_HISTORY);
+  var summaryBalanceSheet = ss.getSheetByName(Sheets.SUMMARY_BALANCE);
+  var transactionsHistorySheet = ss.getSheetByName(Sheets.TRANSACTIONS_HISTORY);
   for (var i = 0; i < rawData.length; i++) {
     if (processTransaction(rawData[i], summaryBalanceSheet)) {
       // Write transactions history
@@ -330,16 +352,16 @@ function processTransactions() {
 // Returns boolean.
 function processTransaction(rawDataRow, summaryBalanceSheet) {
   // Skip transaction if transaction date > current date
-  // ERROR: 31/12019 and 2/2/2019 example of wrong comparison <-- do something with it
+  // ERROR: 31/12/019 and 2/2/2019 example of wrong comparison <-- do something with it
   if (dateAsUtc(rawDataRow.dateOfTransaction) > dateAsUtc(new Date())) {
     return false;
   }
-  
+
   // Skip transaction if transaction value is 0 or less
   if (rawDataRow.value <= 0) {
     return false;
   }
-  
+
   // Get row number
   var rowNum = findValueIndex(flattenArray(summaryBalanceSheet.getSheetValues(1, 1, summaryBalanceSheet.getMaxRows(), 1)),
                               function(value) { return value === rawDataRow.symbol.split(" : ")[0] ? true : false; });
@@ -347,16 +369,16 @@ function processTransaction(rawDataRow, summaryBalanceSheet) {
   if (rowNum === 0) {
     return false;
   }
-  
+
   // Get column number
   var colNum = findValueIndex(flattenArray(summaryBalanceSheet.getRange(rowNum, 1, 1, summaryBalanceSheet.getMaxColumns()).getValues()),
                               function(value) { return value.toString() === EMPTY_STRING; }) - 1;
-  
+
   // Get cell to modify
   var cell = summaryBalanceSheet.getRange(rowNum, colNum).getCell(1, 1);
 
   // Get cell value and note and set background for cell with planned payment
-  var cellNote = createCellNote(cell.getNote(), rawDataRow.dateOfTransaction, rawDataRow.value, rawDataRow.comment, rawDataRow.plannedPayment);  
+  var cellNote = createCellNote(cell.getNote(), rawDataRow.dateOfTransaction, rawDataRow.value, rawDataRow.comment, rawDataRow.plannedPayment);
   var cellValue = cell.getValue();
   if (rawDataRow.plannedPayment) {
     // If cell value is eqaul to zero and cell note money sum more than zero
@@ -366,11 +388,11 @@ function processTransaction(rawDataRow, summaryBalanceSheet) {
       showPlannedPaymentWarning(rawDataRow.symbol, rawDataRow.value, dateTimeToFormattedString(rawDataRow.timestamp), noteMoneySum);
       return false;
     }
-    
+
     // Calculate cell background color
     var cellBackgr = calculateCellBackgroung(cellNote, cellValue);
     cell.setBackground(cellBackgr);
-    
+
     // Calculate overrun
     if (noteMoneySum > cellValue) {
       cellValue += noteMoneySum - cellValue
@@ -378,11 +400,11 @@ function processTransaction(rawDataRow, summaryBalanceSheet) {
   } else {
     cellValue += rawDataRow.value;
   }
-    
+
   // Set cell value and note
   cell.setValue(cellValue);
   cell.setNote(cellNote);
-  
+
   // Transaction processed successfully
   return true;
 }
