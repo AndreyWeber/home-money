@@ -323,16 +323,16 @@ function addTransationHistoryRow(rawDataRow, summaryBalanceSheet, transactionsHi
 // Returns void.
 function processTransactions() {
   // Get active spreadsheet
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
 
   // Get raw transactions data collection
-  var rawDataSheet = ss.getSheetByName(Sheets.RAW_DATA);
-  var rawData = getRowsData(rawDataSheet);
+  const rawDataSheet = ss.getSheetByName(Sheets.RAW_DATA);
+  const rawData = getRowsData(rawDataSheet);
 
   // Process raw transactions data
-  var summaryBalanceSheet = ss.getSheetByName(Sheets.SUMMARY_BALANCE);
-  var transactionsHistorySheet = ss.getSheetByName(Sheets.TRANSACTIONS_HISTORY);
-  for (var i = 0; i < rawData.length; i++) {
+  const summaryBalanceSheet = ss.getSheetByName(Sheets.SUMMARY_BALANCE);
+  const transactionsHistorySheet = ss.getSheetByName(Sheets.TRANSACTIONS_HISTORY);
+  for (let i = 0; i < rawData.length; i++) {
     if (processTransaction(rawData[i], summaryBalanceSheet)) {
       // Write transactions history
       addTransationHistoryRow(rawData[i], summaryBalanceSheet, transactionsHistorySheet);

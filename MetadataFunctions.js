@@ -1,6 +1,6 @@
-/*************************************************************
- * Functions required to work with 'Metadata' tab (read/write) *
- *************************************************************/
+/****************************************************
+ * Functions required to work with 'Metadata' sheet *
+ ****************************************************/
 
 /**
  * Constants
@@ -14,6 +14,9 @@ const MetadataKeys = {
  * Functions
  */
 
+/**
+ * Get 'Metadata' sheet reference
+ */
 const getMetadataSheet = () => SpreadsheetApp
   .getActiveSpreadsheet()
   .getSheetByName(Sheets.METADATA);

@@ -35,7 +35,7 @@ function getObjects(data, keys) {
     var hasData = false;
     for (var j = 0; j < data[i].length; ++j) {
       var cellData = data[i][j];
-      if (isCellEmpty(cellData)) {
+      if (stringIsEmpty(cellData)) {
         continue;
       }
       object[keys[j]] = cellData;
@@ -94,11 +94,21 @@ function normalizeHeader(header) {
   return key;
 }
 
-// Returns true if the cell where cellData was read from is empty.
+/**
+ * Use Duck-typeing to Check if argument is valid instance of Date
+ * @param {any} val
+ * @returns {boolean}
+ */
+const isValidDate = val =>
+  val && val.getTime &&
+  typeof(val.getTime) === "function" &&
+  !isNaN(val.getTime());
+
+// Returns true if argument is empty string
 // Arguments:
-//   - cellData: string
-const isCellEmpty = cellData =>
-  typeof(cellData) === "string" && cellData === EMPTY_STRING;
+//   - str: string
+const stringIsEmpty = str =>
+  typeof(str) === "string" && str === EMPTY_STRING;
 
 // Returns true if the character char is alphabetical, false otherwise.
 function isAlnum(char) {
@@ -111,6 +121,12 @@ function isAlnum(char) {
 function isDigit(char) {
   return char >= '0' && char <= '9';
 }
+
+// isNumber checks if n is number or string representation of number
+// Arguments:
+//   - n: value to test
+// Returns boolean.
+const isNumber = (n) => !isNaN(parseFloat(n)) && isFinite(n);
 
 // ===================================================================
 // Helper methods for transactions processing.
@@ -155,12 +171,6 @@ function findValueIndex(dataArray, isProperValue) {
   return iter(1);
 }
 
-// isNumber checks if n is number or string representation of number
-// Arguments:
-//   - n: value to test
-// Returns boolean.
-const isNumber = (n) => !isNaN(parseFloat(n)) && isFinite(n);
-
 /**
  * Throws new Error with provided message
  * @param {String} msg
@@ -171,21 +181,26 @@ const _throwErr = (msg) => { throw new Error(msg || "Unexpected error occured") 
 // Argumetns:
 //   - dt: date to convert
 // Returns date in UTC format.
-// TODO: _throwErr won't be correctly called
-const dateAsUtc = (dt) =>
-    Date.UTC(dt.getFullYear(), dt.getMonth() + 1, dt.getDate()) ||
-    _throwErr("Can't convert date to UTC. Probably 'dt' argument is undefined");
+const dateAsUtc = (dt) => isValidDate(dt)
+  ? Date.UTC(dt.getFullYear(), dt.getMonth() + 1, dt.getDate())
+  : _throwErr("Can't convert date to UTC. Probably 'dt' argument is undefined");
 
 // Convert date to formatted string by next pattern "mm/dd/YYYY"
 // Arguments:
 //   - dt: date to convert
 // Returns string.
-// TODO: _throwErr won't be correctly called
-const dateToFormattedString = (dt) =>
-    `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()}` ||
-    _throwErr("Can't format date as string. Probably 'dt' argument is undefined.");
+/**
+ *
+ * @param {*} dt
+ */
+const dateToFormattedString = (dt) => isValidDate(dt)
+  `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()}` ||
+  _throwErr("Can't format date as string. Probably 'dt' argument is undefined.");
 
-// TODO: _throwErr won't be correctly called
-const dateTimeToFormattedString = (dt) =>
-    `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()} ${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}` ||
-    _throwErr("Can't format date/time as string Probably 'dt' argument is undefined");
+/**
+ *
+ * @param {*} dt
+ */
+const dateTimeToFormattedString = (dt) => isValidDate(dt)
+  `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()} ${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}` ||
+  _throwErr("Can't format date/time as string Probably 'dt' argument is undefined");
