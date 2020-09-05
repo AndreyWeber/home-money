@@ -95,7 +95,7 @@ function normalizeHeader(header) {
 }
 
 /**
- * Use Duck-typeing to Check if argument is valid instance of Date
+ * Use Duck-typing to Check if argument is valid instance of Date
  * @param {any} val
  * @returns {boolean}
  */
@@ -194,13 +194,13 @@ const dateAsUtc = (dt) => isValidDate(dt)
  * @param {*} dt
  */
 const dateToFormattedString = (dt) => isValidDate(dt)
-  `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()}` ||
-  _throwErr("Can't format date as string. Probably 'dt' argument is undefined.");
+  ? `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()}`
+  : _throwErr("Can't format date as string. Probably 'dt' argument is undefined.");
 
 /**
  *
  * @param {*} dt
  */
 const dateTimeToFormattedString = (dt) => isValidDate(dt)
-  `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()} ${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}` ||
-  _throwErr("Can't format date/time as string Probably 'dt' argument is undefined");
+  ? `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()} ${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`
+  : _throwErr("Can't format date/time as string Probably 'dt' argument is undefined");

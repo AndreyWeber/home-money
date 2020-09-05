@@ -7,7 +7,7 @@
  */
 
 const MetadataKeys = {
-  TRANSACTIONS_MAX_DATE: "TransactionsMaxDate"
+  LATEST_TRANSACTION_DATE: "LatestTransactionDate"
 };
 
 /**
@@ -37,8 +37,8 @@ const getMetadataObject = key => key
  * @returns {Object}
  */
 const getLatestTransactionDateMetadataObject = () =>
-  getMetadataObject(MetadataKeys.TRANSACTIONS_MAX_DATE) ||
-  _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.TRANSACTIONS_MAX_DATE}'`);
+  getMetadataObject(MetadataKeys.LATEST_TRANSACTION_DATE) ||
+  _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_DATE}'`);
 
 /**
  * Set value property of Metadata object containing a latest registered
@@ -57,10 +57,10 @@ function setLatestTransactionsDate (date) {
   const rowNum = metadataSheet
     .getSheetValues(1, 1, metadataSheet.getMaxRows(), 1)
     .flat()
-    .indexOf(MetadataKeys.TRANSACTIONS_MAX_DATE) + 1;
+    .indexOf(MetadataKeys.LATEST_TRANSACTION_DATE) + 1;
 
   if (rowNum === 0) {
-    _throwErr(`${Sheets.METADATA} key = '${MetadataKeys.TRANSACTIONS_MAX_DATE}' doesn't exist`);
+    _throwErr(`${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_DATE}' doesn't exist`);
   }
 
   // Required value must be in the 'B' column

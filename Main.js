@@ -263,13 +263,15 @@ function calculateCellBackgroung(cellNote, cellValue) {
 //   - rawDataSheet: reference on Raw Data sheet
 //   - timeStamp: time stamp of data record on Raw Data sheet
 // Returns void.
-function deleteTransaction(rawDataSheet, timeStamp) {
+// TODO: Move to 'RawDataFunctions'
+function deleteRawTransaction(rawDataSheet, timeStamp) {
   // Get number of row to delete
   var rowNum = findValueIndex(
     flattenArray(rawDataSheet.getSheetValues(1, 1, rawDataSheet.getMaxRows(), 1)),
     (value) => +value === +timeStamp
   );
 
+  //! Row numbers starts with 1
   if (rowNum !== 0) {
     rawDataSheet.deleteRow(rowNum);
   }
@@ -322,24 +324,29 @@ function addTransationHistoryRow(rawDataRow, summaryBalanceSheet, transactionsHi
 // current actual column.
 // Returns void.
 function processTransactions() {
-  // Get active spreadsheet
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  // Get raw transactions data collection
-  const rawDataSheet = ss.getSheetByName(Sheets.RAW_DATA);
-  const rawData = getRowsData(rawDataSheet);
-
-  // Process raw transactions data
   const summaryBalanceSheet = ss.getSheetByName(Sheets.SUMMARY_BALANCE);
   const transactionsHistorySheet = ss.getSheetByName(Sheets.TRANSACTIONS_HISTORY);
-  for (let i = 0; i < rawData.length; i++) {
-    if (processTransaction(rawData[i], summaryBalanceSheet)) {
+
+  // Get raw transactions data collection
+  const rawTransactions = getRawDataTransactionObjects();
+
+  // Process raw transactions data
+  const processedRawTransactions = [];
+  for (let i = 0; i < rawTransactions.length; i++) {
+    if (processTransaction(rawTransactions[i], summaryBalanceSheet)) {
       // Write transactions history
-      addTransationHistoryRow(rawData[i], summaryBalanceSheet, transactionsHistorySheet);
+      addTransationHistoryRow(rawTransactions[i], summaryBalanceSheet, transactionsHistorySheet);
       // Delete raw data row by its timestamp
-      deleteTransaction(rawDataSheet, rawData[i].timestamp);
+      deleteRawTransaction(rawDataSheet, rawTransactions[i].timestamp);
+      // Save all processed raw transactions
+      processedRawTransactions.push(rawTransactions[i]);
     }
   }
+
+  // Save processed raw transactions max date
+  const rawTransactionsMaxDate = getRawDataTransactionsMaxDate(processedRawTransactions);
+  setLatestTransactionsDate(rawTransactionsMaxDate);
 }
 
 // processTransaction processes particular raw transaction data entry and does
@@ -352,7 +359,7 @@ function processTransactions() {
 // Returns boolean.
 function processTransaction(rawDataRow, summaryBalanceSheet) {
   // Skip transaction if transaction date > current date
-  // ERROR: 31/12/019 and 2/2/2019 example of wrong comparison <-- do something with it
+  // ERROR: 31/12/2019 and 2/2/2019 example of wrong comparison <-- do something with it
   if (dateAsUtc(rawDataRow.dateOfTransaction) > dateAsUtc(new Date())) {
     return false;
   }
