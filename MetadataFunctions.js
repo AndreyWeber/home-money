@@ -22,12 +22,18 @@ const getMetadataSheet = () => SpreadsheetApp
   .getSheetByName(Sheets.METADATA);
 
 /**
+ * Get all Metadata objects
+ * @returns {Array}
+ */
+  const getMetadataObjects = () => getRowsData(getMetadataSheet());
+
+/**
  * Get Metadata object by key
  * @param {String} key
  * @returns {Object}
  */
 const getMetadataObject = key => key
-  ? getRowsData(getMetadataSheet()).find(el => el.key === key)
+  ? getMetadataObjects.find(el => el.key === key)
   : _throwErr("'key' argument is undefined");
 
 /**
@@ -39,6 +45,12 @@ const getMetadataObject = key => key
 const getLatestTransactionDateMetadataObject = () =>
   getMetadataObject(MetadataKeys.LATEST_TRANSACTION_DATE) ||
   _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_DATE}'`);
+
+const getLatestTranDateMetadataObjectJson = () =>
+  toJsonString(getLatestTransactionDateMetadataObject);
+
+const getAllMetataObjectsJson = () =>
+  toJsonString(getMetadataObjects);
 
 /**
  * Set value property of Metadata object containing a latest registered

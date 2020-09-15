@@ -30,8 +30,9 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Transactions')
     .addItem('Process Transactions', 'processTransactions')
-    .addItem('Show Daily Expenses', 'showDailyExpenses')
+    //.addItem('Show Daily Expenses', 'showDailyExpenses')
     .addItem('Show Transactions History', 'showTransactionsHistorySidebar')
+    .addItem('Show Metadata Viewer', 'showMetadataSidebar')
     .addToUi();
 }
 
@@ -57,9 +58,19 @@ function showDailyExpenses() {
  * cell currently selected on the Summary Balance tab.
  */
 function showTransactionsHistorySidebar() {
-  var html = HtmlService
+  const html = HtmlService
     .createHtmlOutputFromFile('TransactionsHistorySidebar')
     .setTitle('Transactions History');
+
+  SpreadsheetApp
+    .getUi()
+    .showSidebar(html);
+}
+
+function showMetadataSidebar() {
+  const html = HtmlService
+    .createHtmlOutputFromFile('MetadataViewerSidebar')
+    .setTitle('Metadata Viewer');
 
   SpreadsheetApp
     .getUi()
@@ -260,20 +271,20 @@ function calculateCellBackgroung(cellNote, cellValue) {
 // deleteTransaction deletes transaction record on Raw Data sheet by
 // its time stamp value.
 // Arguments:
-//   - rawDataSheet: reference on Raw Data sheet
 //   - timeStamp: time stamp of data record on Raw Data sheet
 // Returns void.
 // TODO: Move to 'RawDataFunctions'
-function deleteRawTransaction(rawDataSheet, timeStamp) {
+function deleteRawTransaction(timeStamp) {
+  const ds = getRawDataSheet();
+
   // Get number of row to delete
   var rowNum = findValueIndex(
-    flattenArray(rawDataSheet.getSheetValues(1, 1, rawDataSheet.getMaxRows(), 1)),
+    flattenArray(ds.getSheetValues(1, 1, ds.getMaxRows(), 1)),
     (value) => +value === +timeStamp
   );
 
-  //! Row numbers starts with 1
   if (rowNum !== 0) {
-    rawDataSheet.deleteRow(rowNum);
+    ds.deleteRow(rowNum);
   }
 }
 
@@ -338,7 +349,7 @@ function processTransactions() {
       // Write transactions history
       addTransationHistoryRow(rawTransactions[i], summaryBalanceSheet, transactionsHistorySheet);
       // Delete raw data row by its timestamp
-      deleteRawTransaction(rawDataSheet, rawTransactions[i].timestamp);
+      deleteRawTransaction(rawTransactions[i].timestamp);
       // Save all processed raw transactions
       processedRawTransactions.push(rawTransactions[i]);
     }
