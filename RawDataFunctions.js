@@ -1,8 +1,13 @@
 /****************************************************
  * Functions required to work with 'Raw Data' sheet *
  ****************************************************/
-
 /**
+ * Quasi-properties
+ */
+
+ let rawDataSheet = null;
+
+ /**
  * Functions
  */
 
@@ -10,9 +15,17 @@
  * Get 'Raw Data' sheet reference
  * @returns {Object}
  */
-const getRawDataSheet = () => SpreadsheetApp
-  .getActiveSpreadsheet()
-  .getSheetByName(Sheets.RAW_DATA);
+function getRawDataSheet() {
+  if (rawDataSheet === null) {
+    rawDataSheet = SpreadsheetApp
+      .getActiveSpreadsheet()
+      .getSheetByName(Sheets.RAW_DATA);
+
+    return rawDataSheet;
+  }
+
+  return rawDataSheet;
+}
 
 /**
  * Get 'Raw Data' objects collection

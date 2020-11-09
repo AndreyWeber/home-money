@@ -126,7 +126,10 @@ function isDigit(char) {
 // Arguments:
 //   - n: value to test
 // Returns boolean.
-const isNumber = (n) => !isNaN(parseFloat(n)) && isFinite(n);
+const isNumber = n => !isNaN(parseFloat(n)) && isFinite(n);
+
+const isStrContainValidDate = val =>
+  !isNumber(val) && isValidDate(new Date(val));
 
 // ===================================================================
 // Helper methods for transactions processing.
@@ -141,7 +144,7 @@ function flattenArray(array) {
   var result = [];
   function traverse(arr) {
     for (var i = 0; i < arr.length; i++) {
-      if (arr[i] instanceof Array) {
+      if (Array.isArray(arr[i])) {
         traverse(arr[i]);
       } else {
         result.push(arr[i]);
@@ -191,7 +194,7 @@ const dateAsUtc = (dt) => isValidDate(dt)
 // Returns string.
 /**
  *
- * @param {*} dt
+ * @param {Date} dt
  */
 const dateToFormattedString = (dt) => isValidDate(dt)
   ? `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()}`
@@ -199,8 +202,26 @@ const dateToFormattedString = (dt) => isValidDate(dt)
 
 /**
  *
- * @param {*} dt
+ * @param {Date} dt
  */
 const dateTimeToFormattedString = (dt) => isValidDate(dt)
   ? `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()} ${dt.getHours()}:${dt.getMinutes()}:${dt.getSeconds()}`
   : _throwErr("Can't format date/time as string Probably 'dt' argument is undefined");
+
+/**
+ * Converts result of callback function called with callbackArgs to JSON string
+ * @param {Function} callback
+ * @param {Array} callbackArgs
+ */
+function toJsonString(callback, callbackArgs = null) {
+  if (!callback) {
+    _throwErr("'callback' argument cannot be null or undefined");
+  }
+
+  const args = callbackArgs || [];
+  if (!Array.isArray(args)) {
+    _throwErr("'callbackArgs' argument must be array");
+  }
+
+  return JSON.stringify(callback(...args));
+}

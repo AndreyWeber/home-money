@@ -1,0 +1,171 @@
+<style>
+  .metadata {
+    font: normal 13px arial, sans-serif;
+  }
+
+  .metadata__list {
+    display: flex;
+    flex-flow: column nowrap;
+  }
+
+  .metadata__list-row {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px dotted #cccccc;
+    padding-top: 1px;
+    padding-bottom: 2px;
+  }
+
+  .metadata__list-row--dark {
+    background-color: #f5f5f5;
+  }
+
+  .metadata__list-row--empty {
+    border-top: 3px double #cccccc;
+  }
+
+  .metadata__list-row-head {
+    width: 65%;
+    text-align: left;
+    margin-right: 3px;
+  }
+
+  .metadata__list-row-val {
+    width: 35%;
+    text-align: right;
+  }
+
+  .metadata__controls {
+    text-align: center;
+    padding-top: 10px;
+  }
+
+  .loading-label {
+    font-size: 1.1em;
+    padding-left: 5px;
+    padding-top: 5px;
+  }
+
+  .error {
+    display: flex;
+    flex-flow: column nowrap;
+  }
+
+  .error-header {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: red;
+  }
+
+  .error-message {
+    padding-top: 5px;
+  }
+</style>
+
+<!-- Main markup -->
+<div class="metadata">
+  <div class="metadata__list"></div>
+  <div class="metadata__controls">
+    <button class="metadata__reload-btn">Reload</button>
+  </div>
+</div>
+
+<!-- jQuery and jQuery UI scripts references -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.0/jquery-ui.min.js"></script>
+
+<!-- Main script -->
+<script>
+const p = (func, args) =>
+  new Promise(resolve => args
+    ? google.script.run.withSuccessHandler(resolve)[func](args)
+    : google.script.run.withSuccessHandler(resolve)[func]()
+  );
+
+async function formatViewDataItem(item) {
+  if (await p('isStrContainValidDate', item.value)) {
+    const date = new Date(item.value);
+    item.value = date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear();
+  }
+  return item;
+}
+
+$(function() {
+  /****************
+   * Deсlarations *
+   ****************/
+  const metadataList = $('.metadata__list');
+  const reloadBtn = $('.metadata__reload-btn');
+
+  const showLoadingLabel = () => {
+    metadataList.empty();
+    metadataList.append('<div class="loading-label">Loading...</div>');
+  };
+
+  const showMetadata = metadata => {
+    metadataList.empty();
+
+    if (!metadata) {
+      metadataList.append(
+        `<div class="error">
+          <div class="error-header">Error!</div>
+          <div class="error-message">No metadata. Check "Metadata" tab</div>
+        </div>`
+      );
+      return;
+    }
+
+    try {
+      const viewData = JSON.parse(metadata);
+
+      metadataList.append(`
+        <div class="metadata__list-row metadata__list-row--dark">
+          <div class="metadata__list-row-head"><strong>Name</strong></div>
+          <div class="metadata__list-row-val"><strong>Value</strong></div>
+        </div>`
+      );
+
+      // TODO: add 'append()' function and small spinners inside rows
+      // TODO: make 'Reload' button stationary and data area should get vertical scroller when overflowed
+      viewData.forEach(async (item, idx, arr) => {
+        const vdi = await formatViewDataItem(item);
+        metadataList.append(`
+          <div class="metadata__list-row">
+            <div class="metadata__list-row-head">${vdi.description ? vdi.description : vdi.key}</div>
+            <div class="metadata__list-row-val">${vdi.value}</div>
+          </div>`);
+
+        // Enable Reload button
+        if (idx === arr.length - 1) {
+          reloadBtn.removeAttr('disabled');
+        }
+      });
+    } catch (err) {
+      metadataList.empty();
+      metadataList.append(
+        `<div class="error">
+          <div class="error-header">Error!</div>
+          <div class="error-message">${err}</div>
+        </div>`
+      );
+    }
+  };
+
+  const loadMetadata = () => {
+    reloadBtn.attr('disabled', 'disabled');
+    showLoadingLabel();
+
+    google.script.run
+      .withSuccessHandler(showMetadata)
+      .withFailureHandler(() => reloadBtn.removeAttr('disabled'))
+      .getAllMetataObjectsJson();
+  };
+
+  reloadBtn.click(loadMetadata);
+
+  /***************
+   * Start point *
+   ***************/
+  loadMetadata();
+});
+</script>
