@@ -1,49 +1,53 @@
 /****************************************************
  * Functions required to work with 'Raw Data' sheet *
  ****************************************************/
-/**
- * Quasi-properties
- */
+
+/********************
+ * Quasi-properties *
+ ********************/
 
  let rawDataSheet = null;
 
- /**
- * Functions
- */
+/*************
+ * Functions *
+ *************/
 
 /**
- * Get 'Raw Data' sheet reference
- * @returns {Object}
+ * Get 'RawData' sheet object
+ * @returns {Object} 'RawData' sheet object
  */
 function getRawDataSheet() {
   if (rawDataSheet === null) {
     rawDataSheet = SpreadsheetApp
       .getActiveSpreadsheet()
       .getSheetByName(Sheets.RAW_DATA);
-
-    return rawDataSheet;
   }
 
   return rawDataSheet;
 }
 
 /**
- * Get 'Raw Data' objects collection
- * @returns {Object[]}
+ * Get 'RawData' objects collection
+ * @returns {Array} 'RawData' objects collection
 */
 const getRawDataTransactionObjects = () => getRowsData(getRawDataSheet());
 
 /**
- * Get max date from 'Date of transaction' column of the 'Raw Data' sheet
- * @returns {Date} Returns Invalid Date in case of empty 'Date of transaction' column
+ * Get a 'RawData' object with max transaction date
+ * @param {Array} rawDataArr - collection of 'RawData' objects
+ * @returns {Object} 'RawData' object with max date
  */
-const getRawDataTransactionsMaxDate = (rawData) => rawData
-  ? rawData.filter(to => to.dateOfTransaction && isValidDate(to.dateOfTransaction))
-  .map(to => to.dateOfTransaction)
-  .reduce((prevVal, curVal) =>
-    isValidDate(prevVal) && (dateAsUtc(prevVal) > dateAsUtc(curVal))
-      ? prevVal
-      : curVal,
-    new Date(NaN) // Initial value for reducer
-  )
+const getRawDataTransactionObjectWithMaxDate = (rawDataArr) => rawDataArr
+  ? rawDataArr.filter(to => to.dateOfTransaction && isValidDate(to.dateOfTransaction))
+      .reduce((prevVal, curVal) =>
+        isValidDate(prevVal.dateOfTransaction) &&
+        (dateAsUtc(prevVal.dateOfTransaction) > dateAsUtc(curVal.dateOfTransaction))
+          ? prevVal
+          : curVal,
+        {
+          dateOfTransaction: new Date(NaN),
+          comment: "",
+          symbol: ""
+        } // Initial value for reducer
+      )
   : _throwErr("'rawData' argument is undefined");

@@ -355,9 +355,12 @@ function processTransactions() {
     }
   }
 
-  // Save processed raw transactions max date
-  const rawTransactionsMaxDate = getRawDataTransactionsMaxDate(processedRawTransactions);
-  setLatestTransactionsDate(rawTransactionsMaxDate);
+  // Save processed raw transactions metadata
+  const rawTransaction = getRawDataTransactionObjectWithMaxDate(processedRawTransactions);
+
+  setLatestTransactionsDate(rawTransaction.dateOfTransaction);
+  setLatestTransactionName(rawTransaction.comment);
+  setLatestTransactionSymbol(rawTransaction.symbol.split(" : ")[0]);
 }
 
 // processTransaction processes particular raw transaction data entry and does
@@ -381,16 +384,23 @@ function processTransaction(rawDataRow, summaryBalanceSheet) {
   }
 
   // Get row number
-  var rowNum = findValueIndex(flattenArray(summaryBalanceSheet.getSheetValues(1, 1, summaryBalanceSheet.getMaxRows(), 1)),
-                              function(value) { return value === rawDataRow.symbol.split(" : ")[0] ? true : false; });
+  var rowNum = findValueIndex(
+    flattenArray(summaryBalanceSheet.getSheetValues(1, 1, summaryBalanceSheet.getMaxRows(), 1)),
+    (value) => value === rawDataRow.symbol(" : ")[0]
+  );
+//function(value) { return value === rawDataRow.symbol.split(" : ")[0] ? true : false; });
+
   // Skip transaction if symbol doesn't exist
   if (rowNum === 0) {
     return false;
   }
 
   // Get column number
-  var colNum = findValueIndex(flattenArray(summaryBalanceSheet.getRange(rowNum, 1, 1, summaryBalanceSheet.getMaxColumns()).getValues()),
-                              function(value) { return value.toString() === EMPTY_STRING; }) - 1;
+  var colNum = findValueIndex(
+    flattenArray(summaryBalanceSheet.getRange(rowNum, 1, 1, summaryBalanceSheet.getMaxColumns()).getValues()),
+    (value) => value.toString() === EMPTY_STRING
+  ) - 1;
+//function(value) { return value.toString() === EMPTY_STRING; }
 
   // Get cell to modify
   var cell = summaryBalanceSheet.getRange(rowNum, colNum).getCell(1, 1);
