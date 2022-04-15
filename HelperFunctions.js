@@ -176,7 +176,8 @@ function findValueIndex(dataArray, isProperValue) {
 
 /**
  * Throws new Error with provided message
- * @param {String} msg
+ * @param {String} msg - error message
+ * @returns {Error} thrown error
  */
 const _throwErr = (msg) => { throw new Error(msg || "Unexpected error occured") };
 
