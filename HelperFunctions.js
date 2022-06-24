@@ -104,11 +104,21 @@ const isValidDate = val =>
   typeof(val.getTime) === "function" &&
   !isNaN(val.getTime());
 
-// Returns true if argument is empty string
-// Arguments:
-//   - str: string
+/**
+ * Returns true if argument is empty string
+ * @param {any} str
+ * @returns {boolean}
+ */
 const stringIsEmpty = str =>
-  typeof(str) === "string" && str === EMPTY_STRING;
+  isString(str) && str === EMPTY_STRING;
+
+/**
+ * Returns true if argument is string
+ * @param {any} str
+ * @returns {boolean}
+ */
+const isString = str =>
+  typeof(str) === "string";
 
 // Returns true if the character char is alphabetical, false otherwise.
 function isAlnum(char) {
