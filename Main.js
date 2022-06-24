@@ -360,7 +360,7 @@ function processTransactions() {
 
   setLatestTransactionsDate(rawTransaction.dateOfTransaction);
   setLatestTransactionName(rawTransaction.comment);
-  setLatestTransactionSymbol(rawTransaction.symbol.split(" : ")[0]);
+  setLatestTransactionSymbol(rawTransaction.symbol);
 }
 
 // processTransaction processes particular raw transaction data entry and does
@@ -388,7 +388,6 @@ function processTransaction(rawDataRow, summaryBalanceSheet) {
     flattenArray(summaryBalanceSheet.getSheetValues(1, 1, summaryBalanceSheet.getMaxRows(), 1)),
     (value) => value === rawDataRow.symbol(" : ")[0]
   );
-//function(value) { return value === rawDataRow.symbol.split(" : ")[0] ? true : false; });
 
   // Skip transaction if symbol doesn't exist
   if (rowNum === 0) {
@@ -400,7 +399,6 @@ function processTransaction(rawDataRow, summaryBalanceSheet) {
     flattenArray(summaryBalanceSheet.getRange(rowNum, 1, 1, summaryBalanceSheet.getMaxColumns()).getValues()),
     (value) => value.toString() === EMPTY_STRING
   ) - 1;
-//function(value) { return value.toString() === EMPTY_STRING; }
 
   // Get cell to modify
   var cell = summaryBalanceSheet.getRange(rowNum, colNum).getCell(1, 1);

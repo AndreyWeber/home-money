@@ -96,8 +96,8 @@ function setLatestTransactionsDate(date) {
  * @param {string} name - latest registered transaction name
  */
 function setLatestTransactionName(name) {
-  if (!name) {
-    _throwErr("'name' argument is undefined");
+  if (!isString(name)) {
+    _throwErr(`'name' argument is undefined or not a string. value: ${name}`);
   }
   setMetadataValue(MetadataKeys.LATEST_TRANSACTION_NAME, name);
 }
@@ -108,8 +108,8 @@ function setLatestTransactionName(name) {
  * @param {string} symbol - latest registered trnsaction symbol
  */
 function setLatestTransactionSymbol(symbol) {
-  if (!symbol) {
-    _throwErr("'symbol' argument is undefined");
+  if (!isString(symbol)) {
+    _throwErr(`'symbol' argument is undefined or not a string. value: ${symbol}`);
   }
   setMetadataValue(MetadataKeys.LATEST_TRANSACTION_SYMBOL, symbol);
 }
