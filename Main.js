@@ -106,16 +106,22 @@ function getDailyExpensesData(dateToShow, includePlanned) {
   // Get expected daily expenses value
   var summaryBalanceSheet = ss.getSheetByName(Sheets.SUMMARY_BALANCE);
 
-  var rowNum = findValueIndex(flattenArray(summaryBalanceSheet.getSheetValues(1, 1, summaryBalanceSheet.getMaxRows(), 1)),
-                              function(value) { return (value == FREE_DAILY_CASH_DATA_TITLE) ? true : false; });
-  var colNum = findValueIndex(flattenArray(summaryBalanceSheet.getRange(rowNum + 1, 1, 1, summaryBalanceSheet.getMaxColumns()).getValues()),
-                              isNumber);
+  var rowNum = findValueIndex(
+    flattenArray(summaryBalanceSheet.getSheetValues(1, 1, summaryBalanceSheet.getMaxRows(), 1)),
+    (value) => value === FREE_DAILY_CASH_DATA_TITLE
+  );
+  var colNum = findValueIndex(
+    flattenArray(summaryBalanceSheet.getRange(rowNum + 1, 1, 1, summaryBalanceSheet.getMaxColumns()).getValues()),
+    isNumber
+  );
   var dailyExpensesSumExpected = summaryBalanceSheet.getRange(rowNum, colNum).getCell(1, 1).getValue();
 
   return {
     sumActual: dailyExpensesSumActual + CURRENCY_SUFFIX,
     sumExpected: dailyExpensesSumExpected.toFixed(2) + CURRENCY_SUFFIX,
-    overrun: dailyExpensesSumActual > dailyExpensesSumExpected ? (dailyExpensesSumActual - dailyExpensesSumExpected).toFixed(2) + CURRENCY_SUFFIX: "(нет)"
+    overrun: dailyExpensesSumActual > dailyExpensesSumExpected
+      ? (dailyExpensesSumActual - dailyExpensesSumExpected).toFixed(2) + CURRENCY_SUFFIX
+      : "(нет)"
   };
 }
 
@@ -358,9 +364,10 @@ function processTransactions() {
   // Save processed raw transactions metadata
   const rawTransaction = getRawDataTransactionObjectWithMaxDate(processedRawTransactions);
 
-  setLatestTransactionsDate(rawTransaction.dateOfTransaction);
+  setLatestTransactionDate(rawTransaction.dateOfTransaction);
   setLatestTransactionName(rawTransaction.comment);
   setLatestTransactionSymbol(rawTransaction.symbol);
+  setLatestTransactionValue(rawTransaction.value);
 }
 
 // processTransaction processes particular raw transaction data entry and does
