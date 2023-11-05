@@ -386,7 +386,7 @@ function processTransaction(rawDataRow, summaryBalanceSheet) {
   // Get row number
   var rowNum = findValueIndex(
     flattenArray(summaryBalanceSheet.getSheetValues(1, 1, summaryBalanceSheet.getMaxRows(), 1)),
-    (value) => value === rawDataRow.symbol(" : ")[0]
+    (value) => value === rawDataRow.symbol.split(" : ")[0]
   );
 
   // Skip transaction if symbol doesn't exist
