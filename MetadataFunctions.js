@@ -15,7 +15,8 @@ let metadataSheet = null;
 const MetadataKeys = {
   LATEST_TRANSACTION_DATE: "LatestTransactionDate",
   LATEST_TRANSACTION_NAME: "LatestTransactionName",
-  LATEST_TRANSACTION_SYMBOL: "LatestTransactionSymbol"
+  LATEST_TRANSACTION_SYMBOL: "LatestTransactionSymbol",
+  LATEST_TRANSACTION_VALUE: "LatestTransactionValue",
 };
 
 /*************
@@ -83,7 +84,7 @@ function setMetadataValue(metadataKey, value) {
  * and save it into the appropriate cell of Metadata sheet
  * @param {Date} date - latest registered transacation date
  */
-function setLatestTransactionsDate(date) {
+function setLatestTransactionDate(date) {
   // Will throw an error if 'date' is undefined or has wrong format
   const dateString = dateToFormattedString(date);
 
@@ -114,6 +115,18 @@ function setLatestTransactionSymbol(symbol) {
   setMetadataValue(MetadataKeys.LATEST_TRANSACTION_SYMBOL, symbol);
 }
 
+/**
+ * Set value property of Metadata object containing the latet registered transaction value
+ * and save it into the appropriate cell of Metadata sheet
+ * @param {number} value - lates registered transaction value
+ */
+function setLatestTransactionValue(value) {
+  if (isNaN(value)) {
+    _throwErr(`'value' argument is not a number. value: ${value}`);
+  }
+  setMetadataValue(MetadataKeys.LATEST_TRANSACTION_VALUE, value);
+}
+
 /**********************************
  * Cunstom sphreadsheet functions *
  **********************************/
@@ -135,7 +148,7 @@ function GET_LATEST_TRAN_DATE() {
 */
 function GET_LATEST_TRAN_NAME() {
   return getMetadataObject(MetadataKeys.LATEST_TRANSACTION_NAME).value ||
-  _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_NAME}'`);
+    _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_NAME}'`);
 }
 
 
@@ -147,4 +160,14 @@ function GET_LATEST_TRAN_NAME() {
 function GET_LATEST_TRAN_SYMBOL() {
   return getMetadataObject(MetadataKeys.LATEST_TRANSACTION_SYMBOL).value ||
     _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_SYMBOL}'`);
+}
+
+/**
+* Get latest registered transaction value stored on 'Metadata' tab
+* @returns {number} latest registered transaction symbol
+* @customfunction
+*/
+function GET_LATEST_TRAN_VALUE() {
+  return getMetadataObject(MetadataKeys.LATEST_TRANSACTION_VALUE).value ||
+    _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_VALUE}'`);
 }
