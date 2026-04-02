@@ -13,14 +13,37 @@
 //   - columnHeadersRowIndex: specifies the row number where the column names are stored.
 //       This argument is optional and it defaults to the row immediately above range;
 // Returns an Array of objects.
-function getRowsData(sheet, range, columnHeadersRowIndex) {
-  var headersIndex = columnHeadersRowIndex || range ? range.getRowIndex() - 1 : 1;
-  var dataRange = range ||
-    sheet.getRange(headersIndex + 1, 1, sheet.getMaxRows() - headersIndex, sheet.getMaxColumns());
-  var numColumns = dataRange.getEndColumn() - dataRange.getColumn() + 1;
-  var headersRange = sheet.getRange(headersIndex, dataRange.getColumn(), 1, numColumns);
-  var headers = headersRange.getValues()[0];
-  return getObjects(dataRange.getValues(), normalizeHeaders(headers));
+// function getRowsData(sheet, range, columnHeadersRowIndex) {
+//   var headersIndex = columnHeadersRowIndex || range ? range.getRowIndex() - 1 : 1;
+//   var dataRange = range ||
+//     sheet.getRange(headersIndex + 1, 1, sheet.getMaxRows() - headersIndex, sheet.getMaxColumns());
+//   var numColumns = dataRange.getEndColumn() - dataRange.getColumn() + 1;
+//   var headersRange = sheet.getRange(headersIndex, dataRange.getColumn(), 1, numColumns);
+//   var headers = headersRange.getValues()[0];
+//   return getObjects(dataRange.getValues(), normalizeHeaders(headers));
+// }
+
+function getRowsData(sheet) {
+  if (!sheet) {
+    _throwErr(`getRowsData failed with invalid args: ${JSON.stringify({ sheet })}`);
+  }
+  const dataRange = sheet.getDataRange();
+  const data = dataRange.getValues();
+
+  const headers = normalizeHeaders(data[0]);
+  const dataRows = data.slice(1);
+
+  return dataRows.map(row => {
+    const object = {};
+    row.forEach((val, colIdx) => {
+      const key = headers[colIdx];
+      object[key] = val === undefined || stringIsEmpty(val)
+        ? null
+        : val;
+    });
+
+    return object;
+  });
 }
 
 // For every row of data in data, generates an object that contains the data. Names of
@@ -37,6 +60,37 @@ function getObjects(data, keys) {
       var cellData = data[i][j];
       if (stringIsEmpty(cellData)) {
         continue;
+      }
+      object[keys[j]] = cellData;
+      hasData = true;
+    }
+    if (hasData) {
+      objects.push(object);
+    }
+  }
+  return objects;
+}
+
+function getObjectsTest(data, keys) {
+  var objects = [];
+  for (var i = 0; i < data.length; ++i) {
+    var object = {};
+    var hasData = false;
+    for (var j = 0; j < data[i].length; ++j) {
+      var cellData = data[i][j];
+      if (stringIsEmpty(cellData)) {
+        continue;
+      }
+      // Sheet timeZone was Warsaw which is +1h ahead of London
+      // when cellData was read it was read as Greenwich time
+      // which is -1h from the date in the cell, so I get 07.03.2024 23:00
+      if (cellData instanceof Date) {
+        var DateTime = luxon.DateTime;
+        var dt = DateTime.fromJSDate(cellData);
+        var scriptTimeZone = Session.getScriptTimeZone();
+        var dtRezoned = dt.setZone(scriptTimeZone, { keepLocalTime: true });
+        var a = dtRezoned.toString();
+        var b = 1;
       }
       object[keys[j]] = cellData;
       hasData = true;
@@ -101,7 +155,7 @@ function normalizeHeader(header) {
  */
 const isValidDate = val =>
   val && val.getTime &&
-  typeof(val.getTime) === "function" &&
+  typeof (val.getTime) === "function" &&
   !isNaN(val.getTime());
 
 /**
@@ -118,7 +172,7 @@ const stringIsEmpty = str =>
  * @returns {boolean}
  */
 const isString = str =>
-  typeof(str) === "string";
+  typeof (str) === "string";
 
 // Returns true if the character char is alphabetical, false otherwise.
 function isAlnum(char) {
