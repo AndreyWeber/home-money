@@ -1,0 +1,12 @@
+# Test infrastructure
+jest.config.js
+tests/
+
+# Node / npm
+node_modules/
+package.json
+package-lock.json
+
+# IDE and misc
+.gitignore
+README.md
