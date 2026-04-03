@@ -86,8 +86,7 @@ async function formatViewDataItem(item) {
   // TODO: Write detailed description how does it work
   if (await p('isStrContainValidDate', item.value)) {
     const date = new Date(item.value);
-    //item.value = date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear();
-    item.value = `${date.getDate()}/${(date.getMonth() + 1)}/${date.getFullYear()}`;
+    item.value = `${date.getUTCDate()}/${date.getUTCMonth() + 1}/${date.getUTCFullYear()}`;
   }
   return item;
 }

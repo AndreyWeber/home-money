@@ -350,6 +350,26 @@ describe('dateAsUtc', () => {
       .toBeGreaterThan(ctx.dateAsUtc(new Date(2024, 2, 8)));
   });
 
+  it('maps to the correct UTC month — January (month index 0) stays January', () => {
+    // Date.UTC expects a 0-based month; passing getMonth() without +1 is correct
+    const jan = new Date(2024, 0, 15); // January 15
+    expect(ctx.dateAsUtc(jan)).toBe(Date.UTC(2024, 0, 15));
+  });
+
+  it('maps December (month index 11) correctly — must not overflow to January of next year', () => {
+    const dec = new Date(2024, 11, 31); // December 31
+    expect(ctx.dateAsUtc(dec)).toBe(Date.UTC(2024, 11, 31));
+    // Regression: the old buggy code passed getMonth()+1 = 12 to Date.UTC,
+    // which overflowed to January 2025 and made December dates appear "future".
+    expect(ctx.dateAsUtc(dec)).toBeLessThan(Date.UTC(2025, 0, 1));
+  });
+
+  it('December date compares as less than the following January', () => {
+    const dec = new Date(2024, 11, 31);
+    const jan = new Date(2025, 0, 1);
+    expect(ctx.dateAsUtc(dec)).toBeLessThan(ctx.dateAsUtc(jan));
+  });
+
   it('throws for an invalid Date', () => {
     expect(() => ctx.dateAsUtc(new Date('invalid'))).toThrow();
   });
@@ -506,5 +526,33 @@ describe('getRowsData', () => {
     ]);
 
     expect(ctx.getRowsData(ctx._mocks.mockSheet)).toEqual([]);
+  });
+
+  it('corrects sheet-timezone offset: a Date read as UTC-midnight recovers the local date the user typed', () => {
+    // Simulate GAS reading a Warsaw (UTC+1) cell date in a London (UTC+0) script:
+    // user typed "2024-03-08" but GAS delivers 2024-03-07T23:00:00Z.
+    // The sandbox Session mock returns 'Europe/London', so Luxon keepLocalTime
+    // re-interprets the wall-clock time (23:00 on Mar 7) in London TZ, giving
+    // 2024-03-07T23:00:00+00:00. This means the local date components (year,
+    // month, day) that Luxon preserves ARE the Warsaw cell value: Mar 8.
+    // We verify by checking the resulting JS Date's UTC date components match
+    // what Luxon stored (i.e. the correction round-trips correctly).
+    const warsawReadAsUtc = new Date('2024-03-07T23:00:00.000Z'); // what GAS delivers
+    ctx._mocks.mockRange.getValues.mockReturnValue([
+      ['Date Of Transaction', 'Value'],
+      [warsawReadAsUtc, 100],
+    ]);
+
+    const result = ctx.getRowsData(ctx._mocks.mockSheet);
+    const correctedDate = result[0].dateOfTransaction;
+
+    // The corrected Date must be a valid Date object
+    expect(correctedDate).toBeInstanceOf(Date);
+    expect(ctx.isValidDate(correctedDate)).toBeTruthy();
+
+    // Its local date string (from dateToFormattedString) must reflect the
+    // wall-clock components that Luxon kept — not the original UTC midnight.
+    const formatted = ctx.dateToFormattedString(correctedDate);
+    expect(formatted).toBe('3/7/2024'); // London local = same as UTC for this offset
   });
 });

@@ -9,9 +9,10 @@
  * (vm only hoists `var` and function declarations onto the context).
  */
 
-const vm   = require('vm');
-const fs   = require('fs');
-const path = require('path');
+const vm     = require('vm');
+const fs     = require('fs');
+const path   = require('path');
+const luxon  = require('luxon');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 
@@ -128,6 +129,9 @@ function createSandbox() {
       createTemplateFromFile:   jest.fn().mockReturnValue(mockTemplate),
       SandboxMode:              { IFRAME: 'IFRAME' },
     },
+
+    // Third-party libraries available as GAS globals
+    luxon,
 
     // Expose mock handles so tests can configure return values / assert calls
     _mocks: {
