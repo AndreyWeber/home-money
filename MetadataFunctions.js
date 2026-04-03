@@ -86,9 +86,14 @@ function setMetadataValue(metadataKey, value) {
  */
 function setLatestTransactionDate(date) {
   // Will throw an error if 'date' is undefined or has wrong format
-  const dateString = dateToFormattedString(date);
+  if (!date) {
+    _throwErr(`'date' argument is undefined or not a date. value: ${date}`);
+  }
 
-  setMetadataValue(MetadataKeys.LATEST_TRANSACTION_DATE, dateString);
+  setMetadataValue(
+    MetadataKeys.LATEST_TRANSACTION_DATE,
+    date.toISOString()
+  );
 }
 
 /**

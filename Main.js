@@ -85,8 +85,7 @@ function getDailyExpensesData(dateToShow, includePlanned) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   // Get raw transactions data collection
-  var rawDataSheet = ss.getSheetByName(Sheets.RAW_DATA);
-  var rawData = getRowsData(rawDataSheet);
+  const rawData = getRawDataTransactionObjects();
 
   // Calculate actual daily expenses value
   var dailyExpensesSumActual = 0;

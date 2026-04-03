@@ -1,5 +1,19 @@
 {
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "luxon": "^3.7.2"
+  },
   "dependencies": {
     "@types/google-apps-script": "^1.0.45"
+  },
+  "scripts": {
+    "test": "jest",
+    "push": "clasp push",
+    "push:watch": "clasp push --watch",
+    "version:create": "clasp version",
+    "version:list": "clasp versions",
+    "deploy:list": "clasp deployments",
+    "deploy:new": "clasp push && clasp version && clasp deploy",
+    "deploy:update": "clasp push && clasp version && clasp deploy --deploymentId"
   }
 }

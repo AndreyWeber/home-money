@@ -13,14 +13,37 @@
 //   - columnHeadersRowIndex: specifies the row number where the column names are stored.
 //       This argument is optional and it defaults to the row immediately above range;
 // Returns an Array of objects.
-function getRowsData(sheet, range, columnHeadersRowIndex) {
-  var headersIndex = columnHeadersRowIndex || range ? range.getRowIndex() - 1 : 1;
-  var dataRange = range ||
-    sheet.getRange(headersIndex + 1, 1, sheet.getMaxRows() - headersIndex, sheet.getMaxColumns());
-  var numColumns = dataRange.getEndColumn() - dataRange.getColumn() + 1;
-  var headersRange = sheet.getRange(headersIndex, dataRange.getColumn(), 1, numColumns);
-  var headers = headersRange.getValues()[0];
-  return getObjects(dataRange.getValues(), normalizeHeaders(headers));
+function getRowsData(sheet) {
+  if (!sheet) {
+    _throwErr(`getRowsData failed with invalid args: ${JSON.stringify({ sheet })}`);
+  }
+  const dataRange = sheet.getDataRange();
+  const data = dataRange.getValues();
+
+  const headers = normalizeHeaders(data[0]);
+  const dataRows = data.slice(1);
+
+  const scriptTimeZone = Session.getScriptTimeZone();
+
+  return dataRows.map(row => {
+    const object = {};
+    row.forEach((val, colIdx) => {
+      const key = headers[colIdx];
+      if (val === undefined || stringIsEmpty(val)) {
+        object[key] = null;
+      } else if (val instanceof Date && isValidDate(val)) {
+        // GAS reads sheet dates in UTC, but the sheet timezone may be ahead of
+        // the script timezone. Re-interpret the local date the user typed by
+        // keeping the local time components and re-zoning to the script TZ.
+        const dt = luxon.DateTime.fromJSDate(val).setZone(scriptTimeZone, { keepLocalTime: true });
+        object[key] = dt.toJSDate();
+      } else {
+        object[key] = val;
+      }
+    });
+
+    return object;
+  });
 }
 
 // For every row of data in data, generates an object that contains the data. Names of
@@ -101,7 +124,7 @@ function normalizeHeader(header) {
  */
 const isValidDate = val =>
   val && val.getTime &&
-  typeof(val.getTime) === "function" &&
+  typeof (val.getTime) === "function" &&
   !isNaN(val.getTime());
 
 /**
@@ -118,7 +141,7 @@ const stringIsEmpty = str =>
  * @returns {boolean}
  */
 const isString = str =>
-  typeof(str) === "string";
+  typeof (str) === "string";
 
 // Returns true if the character char is alphabetical, false otherwise.
 function isAlnum(char) {
@@ -196,7 +219,7 @@ const _throwErr = (msg) => { throw new Error(msg || "Unexpected error occured") 
 //   - dt: date to convert
 // Returns date in UTC format.
 const dateAsUtc = (dt) => isValidDate(dt)
-  ? Date.UTC(dt.getFullYear(), dt.getMonth() + 1, dt.getDate())
+  ? Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate())
   : _throwErr("Can't convert date to UTC. Probably 'dt' argument is undefined");
 
 // Convert date to formatted string by next pattern "mm/dd/YYYY"
