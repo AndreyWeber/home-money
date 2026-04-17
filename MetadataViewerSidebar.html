@@ -1,11 +1,24 @@
 <style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* prevent body-level scrollbar */
+  }
+
   .metadata {
     font: normal 13px arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
   }
 
   .metadata__list {
     display: flex;
     flex-flow: column nowrap;
+    overflow-y: auto;
+    flex: 1 1 0;
+    min-height: 0; /* allows flex child to shrink below its content height */
   }
 
   .metadata__list-row {
@@ -28,16 +41,20 @@
     width: 65%;
     text-align: left;
     margin-right: 3px;
+    padding-top: 4px;
   }
 
   .metadata__list-row-val {
     width: 35%;
     text-align: right;
+    padding-top: 4px;
   }
 
   .metadata__controls {
     text-align: center;
-    padding-top: 10px;
+    padding: 8px 0;
+    border-top: 1px solid #cccccc;
+    flex-shrink: 0;
   }
 
   .loading-label {
@@ -59,6 +76,31 @@
 
   .error-message {
     padding-top: 5px;
+  }
+
+  /* Spinner — shared by the global loading label and per-row placeholders */
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .spinner {
+    display: inline-block;
+    border-radius: 50%;
+    border: 2px solid #dddddd;
+    border-top-color: #888888;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+  }
+
+  .spinner--sm {
+    width: 10px;
+    height: 10px;
+  }
+
+  .spinner--md {
+    width: 14px;
+    height: 14px;
+    margin-right: 5px;
   }
 </style>
 
@@ -82,8 +124,20 @@ const p = (func, args) =>
     : google.script.run.withSuccessHandler(resolve)[func]()
   );
 
+/**
+ * Formats a single metadata view item for display.
+ *
+ * If the item's value is a string that represents a valid date (checked via
+ * an async RPC call to the GAS backend `isStrContainValidDate`), the value is
+ * replaced with a human-readable date string in D/M/YYYY format using UTC
+ * date components to avoid timezone-induced day shifts.
+ *
+ * Non-date values are returned unchanged.
+ *
+ * @param  {{ key: string, value: *, description?: string }} item - Metadata item to format
+ * @returns {Promise<{ key: string, value: string, description?: string }>} Formatted item
+ */
 async function formatViewDataItem(item) {
-  // TODO: Write detailed description how does it work
   if (await p('isStrContainValidDate', item.value)) {
     const date = new Date(item.value);
     item.value = `${date.getUTCDate()}/${date.getUTCMonth() + 1}/${date.getUTCFullYear()}`;
@@ -93,14 +147,14 @@ async function formatViewDataItem(item) {
 
 $(function() {
   /****************
-   * Deсlarations *
+   * Declarations *
    ****************/
   const metadataList = $('.metadata__list');
   const reloadBtn = $('.metadata__reload-btn');
 
   const showLoadingLabel = () => {
     metadataList.empty();
-    metadataList.append('<div class="loading-label">Loading...</div>');
+    metadataList.append('<div class="loading-label"><span class="spinner spinner--md"></span>Loading</div>');
   };
 
   const showMetadata = (metadata) => {
@@ -113,34 +167,47 @@ $(function() {
           <div class="error-message">No metadata. Check "Metadata" tab</div>
         </div>`
       );
+      reloadBtn.removeAttr('disabled');
       return;
     }
 
     try {
       const viewData = JSON.parse(metadata);
 
+      // Render header row
       metadataList.append(`
         <div class="metadata__list-row metadata__list-row--dark">
           <div class="metadata__list-row-head"><strong>Name</strong></div>
           <div class="metadata__list-row-val"><strong>Value</strong></div>
-        </div>`
-      );
+        </div>`);
 
-      // TODO: add 'append()' function and small spinners inside rows
-      // TODO: make 'Reload' button stationary and data area should get vertical scroller when overflowed
-      viewData.forEach(async (item, idx, arr) => {
-        const vdi = await formatViewDataItem(item);
+      // Render all data rows immediately with per-row spinners
+      viewData.forEach((item, idx) => {
         metadataList.append(`
           <div class="metadata__list-row">
-            <div class="metadata__list-row-head">${vdi.description ? vdi.description : vdi.key}</div>
-            <div class="metadata__list-row-val">${vdi.value}</div>
+            <div class="metadata__list-row-head">${item.description ?? item.key}</div>
+            <div class="metadata__list-row-val" data-row="${idx}"><span class="spinner spinner--sm"></span></div>
           </div>`);
-
-        // Enable Reload button
-        if (idx === arr.length - 1) {
-          reloadBtn.removeAttr('disabled');
-        }
       });
+
+      // Format each row asynchronously in parallel.
+      // Each RPC call fires immediately; rows update as they resolve independently.
+      const formatPromises = viewData.map((item, idx) =>
+        formatViewDataItem(item)
+          .then(vdi => {
+            metadataList.find(`[data-row="${idx}"]`).text(vdi.value);
+          })
+          .catch(() => {
+            // On failure show the raw value so the row is never stuck on a spinner
+            metadataList.find(`[data-row="${idx}"]`).text(item.value);
+          })
+      );
+
+      // Re-enable Reload only after every row has resolved (or failed)
+      Promise.all(formatPromises).finally(() => {
+        reloadBtn.removeAttr('disabled');
+      });
+
     } catch (err) {
       metadataList.empty();
       metadataList.append(
@@ -149,6 +216,7 @@ $(function() {
           <div class="error-message">${err}</div>
         </div>`
       );
+      reloadBtn.removeAttr('disabled');
     }
   };
 

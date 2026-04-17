@@ -26,6 +26,22 @@ function getRawDataSheet() {
   return rawDataSheet;
 }
 
+// ── Write functions ──────────────────────────────────────────────────────────
+
+/**
+ * Deletes the 'Raw Data' row whose timestamp matches the given value.
+ *
+ * @param  {Date} timeStamp - Timestamp of the row to delete
+ */
+function deleteRawTransaction(timeStamp) {
+  const ds = getRawDataSheet();
+  const rowNum = findValueIndex(
+    flattenArray(ds.getSheetValues(1, 1, ds.getMaxRows(), 1)),
+    (value) => +value === +timeStamp,
+  );
+  if (rowNum !== 0) ds.deleteRow(rowNum);
+}
+
 // ── Read functions ───────────────────────────────────────────────────────────
 
 /**

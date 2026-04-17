@@ -203,7 +203,6 @@ function calculateCellBackgroung(cellNote, cellValue) {
 
 /**
  * Deletes the 'Raw Data' row whose timestamp matches the given value.
- * TODO: Move to RawDataFunctions.js
  *
  * @param  {Date} timeStamp - Timestamp of the row to delete
  */
@@ -219,7 +218,6 @@ function deleteRawTransaction(timeStamp) {
 /**
  * Appends rawDataRow to the transaction-history JSON stored in the
  * corresponding cell on the Transactions History sheet.
- * TODO: Probably can be simplified.
  *
  * @param  {RawTransaction}                           rawDataRow                - Processed transaction record
  * @param  {GoogleAppsScript.Spreadsheet.Sheet}       summaryBalanceSheet       - Summary Balance sheet reference
@@ -236,12 +234,19 @@ function addTransationHistoryRow(rawDataRow, summaryBalanceSheet, transactionsHi
     (value) => value.toString() === EMPTY_STRING,
   ) - 1;
 
-  // TODO: Can be simplified to getRange(rowNum, colNum) only. Should be tested
-  const cell = transactionsHistorySheet.getRange(rowNum, colNum).getCell(1, 1);
+  const cell = transactionsHistorySheet.getRange(rowNum, colNum);
   const cellValue = cell.getValue();
 
-  // TODO: Check if cellValue exists but cannot be parsed — e.g. "null"/"undefined" strings
-  const existing = cellValue ? JSON.parse(cellValue) : null;
+  let existing = null;
+  if (cellValue) {
+    try {
+      existing = JSON.parse(cellValue);
+    } catch (e) {
+      // Cell contains a value that is not valid JSON (e.g. "undefined", partial write).
+      // Treat it as no existing data and start a fresh array.
+      console.warn(`addTransationHistoryRow: unparseable cell value — starting fresh. Value: "${cellValue}". Error: ${e.message}`);
+    }
+  }
   const jsonArr = existing
     ? (Array.isArray(existing) ? existing : [existing])
     : [];
