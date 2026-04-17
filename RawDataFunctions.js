@@ -1,20 +1,21 @@
-/****************************************************
- * Functions required to work with 'Raw Data' sheet *
- ****************************************************/
+/**
+ * @fileoverview Functions for reading transaction records from the 'Raw Data' sheet.
+ */
 
-/********************
- * Quasi-properties *
- ********************/
+/// <reference path="Types.js" />
 
- let rawDataSheet = null;
+// ── Module-level cache ───────────────────────────────────────────────────────
 
-/*************
- * Functions *
- *************/
+/** @type {GoogleAppsScript.Spreadsheet.Sheet|null} */
+let rawDataSheet = null;
+
+// ── Sheet accessor ───────────────────────────────────────────────────────────
 
 /**
- * Get 'RawData' sheet object
- * @returns {Object} 'RawData' sheet object
+ * Returns the 'Raw Data' sheet object. The result is cached so that
+ * SpreadsheetApp is only called once per script execution.
+ *
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} The 'Raw Data' sheet
  */
 function getRawDataSheet() {
   if (rawDataSheet === null) {
@@ -22,32 +23,39 @@ function getRawDataSheet() {
       .getActiveSpreadsheet()
       .getSheetByName(Sheets.RAW_DATA);
   }
-
   return rawDataSheet;
 }
 
+// ── Read functions ───────────────────────────────────────────────────────────
+
 /**
- * Get 'RawData' objects collection
- * @returns {Array} 'RawData' objects collection
-*/
+ * Returns all transaction records from the 'Raw Data' sheet as an array of
+ * objects keyed by normalised column header names.
+ *
+ * @returns {RawTransaction[]} All raw transaction records
+ */
 const getRawDataTransactionObjects = () => getRowsData(getRawDataSheet());
 
 /**
- * Get a 'RawData' object with max transaction date
- * @param {Array} rawDataArr - collection of 'RawData' objects
- * @returns {Object} 'RawData' object with max date
+ * Returns the element in rawDataArr that has the latest (maximum) transaction
+ * date. Entries with missing or invalid dates are ignored.
+ *
+ * When the array is empty or all entries have invalid dates, returns a sentinel
+ * object with an invalid date and empty strings for the text fields.
+ *
+ * @param  {RawTransaction[]} rawDataArr - Collection of raw transaction records
+ * @returns {RawTransaction} Record with the latest transaction date, or a sentinel
+ * @throws {Error} When rawDataArr is falsy
  */
 const getRawDataTransactionObjectWithMaxDate = (rawDataArr) => rawDataArr
-  ? rawDataArr.filter(to => to.dateOfTransaction && isValidDate(to.dateOfTransaction))
-      .reduce((prevVal, curVal) =>
-        isValidDate(prevVal.dateOfTransaction) &&
-        (dateAsUtc(prevVal.dateOfTransaction) > dateAsUtc(curVal.dateOfTransaction))
-          ? prevVal
-          : curVal,
-        {
-          dateOfTransaction: new Date(NaN),
-          comment: "",
-          symbol: ""
-        } // Initial value for reducer
+  ? rawDataArr
+      .filter(to => to.dateOfTransaction != null && isValidDate(to.dateOfTransaction))
+      .reduce(
+        (prev, cur) =>
+          isValidDate(prev.dateOfTransaction) &&
+          dateAsUtc(prev.dateOfTransaction) > dateAsUtc(cur.dateOfTransaction)
+            ? prev
+            : cur,
+        { dateOfTransaction: new Date(NaN), comment: '', symbol: '', value: 0, plannedPayment: false, timestamp: null },
       )
   : _throwErr("'rawData' argument is undefined");

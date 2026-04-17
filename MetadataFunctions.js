@@ -1,31 +1,34 @@
-/****************************************************
- * Functions required to work with 'Metadata' sheet *
- ****************************************************/
+/**
+ * @fileoverview Functions for reading and writing the 'Metadata' sheet.
+ */
 
-/********************
- * Quasi-properties *
- ********************/
+/// <reference path="Types.js" />
 
+// ── Module-level cache ───────────────────────────────────────────────────────
+
+/** @type {GoogleAppsScript.Spreadsheet.Sheet|null} */
 let metadataSheet = null;
 
-/*************
- * Constants *
- *************/
-
-const MetadataKeys = {
-  LATEST_TRANSACTION_DATE: "LatestTransactionDate",
-  LATEST_TRANSACTION_NAME: "LatestTransactionName",
-  LATEST_TRANSACTION_SYMBOL: "LatestTransactionSymbol",
-  LATEST_TRANSACTION_VALUE: "LatestTransactionValue",
-};
-
-/*************
- * Functions *
- *************/
+// ── Constants ────────────────────────────────────────────────────────────────
 
 /**
- * Get 'Metadata' sheet object
- * @returns {Object} 'Metadata' sheet object
+ * Key names used in the 'Metadata' sheet.
+ * @enum {string}
+ */
+const MetadataKeys = {
+  LATEST_TRANSACTION_DATE:   'LatestTransactionDate',
+  LATEST_TRANSACTION_NAME:   'LatestTransactionName',
+  LATEST_TRANSACTION_SYMBOL: 'LatestTransactionSymbol',
+  LATEST_TRANSACTION_VALUE:  'LatestTransactionValue',
+};
+
+// ── Sheet accessor ───────────────────────────────────────────────────────────
+
+/**
+ * Returns the 'Metadata' sheet object. The result is cached so that
+ * SpreadsheetApp is only called once per script execution.
+ *
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} The 'Metadata' sheet
  */
 function getMetadataSheet() {
   if (metadataSheet === null) {
@@ -33,41 +36,50 @@ function getMetadataSheet() {
       .getActiveSpreadsheet()
       .getSheetByName(Sheets.METADATA);
   }
-
   return metadataSheet;
 }
 
+// ── Read functions ───────────────────────────────────────────────────────────
+
 /**
- * Get collection of all 'Metadata' objects
- * @returns {Array<Object>} 'Metadata' objects collection
+ * Returns all entries from the 'Metadata' sheet as an array of objects.
+ *
+ * @returns {MetadataEntry[]} All metadata entries
  */
 const getMetadataObjects = () => getRowsData(getMetadataSheet());
 
 /**
- * Get 'Metadata' object by key
- * @param {string} key - 'Metadata' object key to search by
- * @returns {Object} 'Metadata' object
+ * Returns the metadata entry matching the given key, or `undefined` if not found.
+ *
+ * @param  {string} key - Key to search for
+ * @returns {MetadataEntry|undefined} Matching entry, or undefined
+ * @throws {Error} When key is falsy
  */
 const getMetadataObject = (key) => key
   ? getMetadataObjects().find(el => el.key === key)
   : _throwErr("'key' argument is undefined");
 
 /**
- * Get collection of all 'Metadata' objects
- * @returns {Array<Object>} collection of all 'Metadata' objects
+ * Returns all metadata entries serialised as a JSON string.
+ *
+ * @returns {string} JSON array of all {@link MetadataEntry} objects
  */
 const getAllMetataObjectsJson = () => toJsonString(getMetadataObjects);
 
+// ── Write functions ──────────────────────────────────────────────────────────
+
 /**
- * Set value property of a 'Metadata' object found by the provided key
- * @param {string} metadataKey - 'Metadata' object key to search by
- * @param {string} value - 'Metadata' object value to update
+ * Writes value to the 'Metadata' sheet cell in column B at the row whose
+ * column A matches metadataKey.
+ *
+ * @param  {string}        metadataKey - Key identifying the row to update
+ * @param  {string|number} value       - Value to write into column B
+ * @throws {Error} When metadataKey does not exist in the sheet
  */
 function setMetadataValue(metadataKey, value) {
-  const metadataSheet = getMetadataSheet();
-
-  const rowNum = metadataSheet
-    .getSheetValues(1, 1, metadataSheet.getMaxRows(), 1)
+  const sheet = getMetadataSheet();
+  const rowNum = sheet
+    .getSheetValues(1, 1, sheet.getMaxRows(), 1)
     .flat()
     .indexOf(metadataKey) + 1;
 
@@ -75,31 +87,27 @@ function setMetadataValue(metadataKey, value) {
     _throwErr(`${Sheets.METADATA} key = '${metadataKey}' doesn't exist`);
   }
 
-  const cell = metadataSheet.getRange(`B${rowNum}`);
-  cell.setValue(value);
+  sheet.getRange(`B${rowNum}`).setValue(value);
 }
 
 /**
- * Set value property of Metadata object containing the latest registered transaction date
- * and save it into the appropriate cell of Metadata sheet
- * @param {Date} date - latest registered transacation date
+ * Persists the latest transaction date to the 'Metadata' sheet as an ISO string.
+ *
+ * @param  {Date} date - Latest registered transaction date
+ * @throws {Error} When date is falsy
  */
 function setLatestTransactionDate(date) {
-  // Will throw an error if 'date' is undefined or has wrong format
   if (!date) {
     _throwErr(`'date' argument is undefined or not a date. value: ${date}`);
   }
-
-  setMetadataValue(
-    MetadataKeys.LATEST_TRANSACTION_DATE,
-    date.toISOString()
-  );
+  setMetadataValue(MetadataKeys.LATEST_TRANSACTION_DATE, date.toISOString());
 }
 
 /**
- * Set value property of Metadata object containing the latest registered transaction name
- * and save it into the appropriate cell of Metadata sheet
- * @param {string} name - latest registered transaction name
+ * Persists the latest transaction name to the 'Metadata' sheet.
+ *
+ * @param  {string} name - Latest registered transaction name
+ * @throws {Error} When name is not a string
  */
 function setLatestTransactionName(name) {
   if (!isString(name)) {
@@ -109,9 +117,10 @@ function setLatestTransactionName(name) {
 }
 
 /**
- * Set value property of Metadata object containing the latest registered transaction symbol
- * and save it into the appropriate cell of Metadata sheet
- * @param {string} symbol - latest registered trnsaction symbol
+ * Persists the latest transaction symbol to the 'Metadata' sheet.
+ *
+ * @param  {string} symbol - Latest registered transaction symbol
+ * @throws {Error} When symbol is not a string
  */
 function setLatestTransactionSymbol(symbol) {
   if (!isString(symbol)) {
@@ -121,9 +130,10 @@ function setLatestTransactionSymbol(symbol) {
 }
 
 /**
- * Set value property of Metadata object containing the latet registered transaction value
- * and save it into the appropriate cell of Metadata sheet
- * @param {number} value - lates registered transaction value
+ * Persists the latest transaction value to the 'Metadata' sheet.
+ *
+ * @param  {number} value - Latest registered transaction value
+ * @throws {Error} When value is NaN
  */
 function setLatestTransactionValue(value) {
   if (isNaN(value)) {
@@ -132,47 +142,52 @@ function setLatestTransactionValue(value) {
   setMetadataValue(MetadataKeys.LATEST_TRANSACTION_VALUE, value);
 }
 
-/**********************************
- * Cunstom sphreadsheet functions *
- **********************************/
+// ── Custom spreadsheet functions ─────────────────────────────────────────────
 
 /**
- * Get latest registered transaction date stored on 'Metadata' tab
- * @returns {string} latest registered transaction date
+ * Returns the latest registered transaction date from the 'Metadata' sheet.
+ *
+ * @returns {string} ISO date string of the latest transaction date
+ * @throws {Error} When the key is not found in the sheet
  * @customfunction
  */
 function GET_LATEST_TRAN_DATE() {
-  return getMetadataObject(MetadataKeys.LATEST_TRANSACTION_DATE).value ||
-    _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_DATE}'`);
+  return getMetadataObject(MetadataKeys.LATEST_TRANSACTION_DATE)?.value
+    ?? _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_DATE}'`);
 }
 
 /**
-* Get latest registered transaction name stored on 'Metadata' tab
-* @returns {string} latest registered transaction name
-* @customfunction
-*/
+ * Returns the latest registered transaction name from the 'Metadata' sheet.
+ *
+ * @returns {string} Name of the latest transaction
+ * @throws {Error} When the key is not found in the sheet
+ * @customfunction
+ */
 function GET_LATEST_TRAN_NAME() {
-  return getMetadataObject(MetadataKeys.LATEST_TRANSACTION_NAME).value ||
-    _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_NAME}'`);
+  return getMetadataObject(MetadataKeys.LATEST_TRANSACTION_NAME)?.value
+    ?? _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_NAME}'`);
 }
 
-
 /**
-* Get latest registered transaction symbol stored on 'Metadata' tab
-* @returns {string} latest registered transaction symbol
-* @customfunction
-*/
+ * Returns the latest registered transaction symbol from the 'Metadata' sheet.
+ *
+ * @returns {string} Symbol of the latest transaction
+ * @throws {Error} When the key is not found in the sheet
+ * @customfunction
+ */
 function GET_LATEST_TRAN_SYMBOL() {
-  return getMetadataObject(MetadataKeys.LATEST_TRANSACTION_SYMBOL).value ||
-    _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_SYMBOL}'`);
+  return getMetadataObject(MetadataKeys.LATEST_TRANSACTION_SYMBOL)?.value
+    ?? _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_SYMBOL}'`);
 }
 
 /**
-* Get latest registered transaction value stored on 'Metadata' tab
-* @returns {number} latest registered transaction symbol
-* @customfunction
-*/
+ * Returns the latest registered transaction value from the 'Metadata' sheet.
+ *
+ * @returns {number} Value of the latest transaction
+ * @throws {Error} When the key is not found in the sheet
+ * @customfunction
+ */
 function GET_LATEST_TRAN_VALUE() {
-  return getMetadataObject(MetadataKeys.LATEST_TRANSACTION_VALUE).value ||
-    _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_VALUE}'`);
+  return getMetadataObject(MetadataKeys.LATEST_TRANSACTION_VALUE)?.value
+    ?? _throwErr(`Can't find ${Sheets.METADATA} key = '${MetadataKeys.LATEST_TRANSACTION_VALUE}'`);
 }
