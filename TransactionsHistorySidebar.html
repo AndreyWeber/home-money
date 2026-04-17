@@ -1,11 +1,24 @@
 <style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* prevent body-level scrollbar */
+  }
+
   .transactions {
     font: normal 13px arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
   }
 
   .transactions__list {
     display: flex;
     flex-flow: column nowrap;
+    overflow-y: auto;
+    flex: 1 1 0;
+    min-height: 0; /* allows flex child to shrink below its content height */
   }
 
   .transactions__list-row {
@@ -43,13 +56,20 @@
     color: green;
   }
 
+  .transactions__summary {
+    flex-shrink: 0;
+    font-size: 1.1em;
+    color: red;
+    border-top: 1px dashed #cccccc;
+    padding: 6px 5px;
+    display: none;
+  }
+
   .transactions__controls {
     text-align: center;
-    padding-top: 10px;
-    position: fixed;
-    right: 10%;
-    bottom: 0%;
-    z-index: 1000;
+    padding: 8px 0;
+    border-top: 1px solid #cccccc;
+    flex-shrink: 0;
   }
 
   .loading-label {
@@ -73,18 +93,31 @@
     padding-top: 5px;
   }
 
-  .planned-payment-message {
-    font-size: 1.1em;
-    color: red;
-    border-top: 1px dashed #cccccc;
-    padding-top: 3px;
-    margin-top: 7px;
+  /* Spinner — used by the global loading label */
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .spinner {
+    display: inline-block;
+    border-radius: 50%;
+    border: 2px solid #dddddd;
+    border-top-color: #888888;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+  }
+
+  .spinner--md {
+    width: 14px;
+    height: 14px;
+    margin-right: 5px;
   }
 </style>
 
 <!-- Main markup -->
 <div class="transactions">
   <div class="transactions__list"></div>
+  <div class="transactions__summary"></div>
   <div class="transactions__controls">
     <button class="transactions__reload-btn">Reload</button>
   </div>
@@ -98,99 +131,104 @@
 <script>
 $(function() {
   /****************
-   * Deсlarations *
+   * Declarations *
    ****************/
-  var transactionsList = $('.transactions__list');
+  const transactionsList = $('.transactions__list');
+  const transactionsSummary = $('.transactions__summary');
+  const reloadBtn = $('.transactions__reload-btn');
 
-  var showLoadingLabel = function() {
+  const showLoadingLabel = () => {
     transactionsList.empty();
-    transactionsList.append('<div class="loading-label">Loading...</div>');
+    transactionsSummary.hide();
+    transactionsList.append('<div class="loading-label"><span class="spinner spinner--md"></span>Loading</div>');
   };
 
-  var showTransactionsHistory = function(transactionsHistoryData) {
+  const showTransactionsHistory = (transactionsHistoryData) => {
     transactionsList.empty();
 
     if (!transactionsHistoryData) {
-      transactionsList.append('<div>Error getting transactions history data!<div>');
+      transactionsList.append('<div class="error"><div class="error-header">Error!</div><div class="error-message">Error getting transactions history data!</div></div>');
+      reloadBtn.removeAttr('disabled');
       return;
     }
 
     if (!transactionsHistoryData.isSummaryBalanceSheet) {
       transactionsList.append('<div>Please switch to the <strong>"Summary Balance"</strong> tab</div>');
+      reloadBtn.removeAttr('disabled');
       return;
     }
 
-    plannedPaymentsSum = 0;
+    let plannedPaymentsSum = 0;
     try {
-      JSON.parse(transactionsHistoryData.json, function(key, value) {
+      JSON.parse(transactionsHistoryData.json, (key, value) => {
         if (key === 'dateOfTransaction') {
-          var date = new Date(value);
-
-          return date.getUTCDate() + "/" + (date.getUTCMonth() + 1) + "/" + date.getUTCFullYear();
+          const date = new Date(value);
+          return `${date.getUTCDate()}/${date.getUTCMonth() + 1}/${date.getUTCFullYear()}`;
         }
-
         return value;
-      }).forEach(function(element, index, array) {
-        var comment = element.comment ? element.comment : 'n/a';
+      }).forEach((element, index, array) => {
+        const comment = element.comment ?? 'n/a';
+        const isPlanned = element.plannedPayment;
+        const plannedPaymentVal = isPlanned ? 'Yes' : 'No';
+        const plannedPaymentValStyle = isPlanned
+          ? 'transactions__list-row-val--planned'
+          : 'transactions__list-row-val--not-planned';
 
-        var plannedPaymentVal = "No";
-        var plannedPaymentValStyle = "transactions__list-row-val--not-planned";
-        if (element.plannedPayment) {
-          plannedPaymentVal = "Yes";
-          plannedPaymentValStyle = "transactions__list-row-val--planned";
-          plannedPaymentsSum += element.value;
-        }
+        if (isPlanned) plannedPaymentsSum += element.value;
 
-        var html = '<div class="transactions__list-row transactions__list-row--dark">' +
-                     '<div class="transactions__list-row-head"><strong>Date:</strong></div>' +
-                     '<div class="transactions__list-row-val">' + element.dateOfTransaction + '</div>' +
-                   '</div>' +
-                   '<div class="transactions__list-row">' +
-                     '<div class="transactions__list-row-head"><strong>Planned:</strong></div>' +
-                     '<div class="transactions__list-row-val ' + plannedPaymentValStyle + '">' + plannedPaymentVal + '</div>' +
-                   '</div>' +
-                   '<div class="transactions__list-row transactions__list-row--dark">' +
-                     '<div class="transactions__list-row-head"><strong>Comment:</strong></div>' +
-                     '<div class="transactions__list-row-val">' + comment + '</div>' +
-                   '</div>' +
-                   '<div class="transactions__list-row">' +
-                     '<div class="transactions__list-row-head"><strong>Value:</strong></div>' +
-                     '<div class="transactions__list-row-val">' + element.value + '</div>' +
-                   '</div>';
+        let html = `
+          <div class="transactions__list-row transactions__list-row--dark">
+            <div class="transactions__list-row-head"><strong>Date:</strong></div>
+            <div class="transactions__list-row-val">${element.dateOfTransaction}</div>
+          </div>
+          <div class="transactions__list-row">
+            <div class="transactions__list-row-head"><strong>Planned:</strong></div>
+            <div class="transactions__list-row-val ${plannedPaymentValStyle}">${plannedPaymentVal}</div>
+          </div>
+          <div class="transactions__list-row transactions__list-row--dark">
+            <div class="transactions__list-row-head"><strong>Comment:</strong></div>
+            <div class="transactions__list-row-val">${comment}</div>
+          </div>
+          <div class="transactions__list-row">
+            <div class="transactions__list-row-head"><strong>Value:</strong></div>
+            <div class="transactions__list-row-val">${element.value}</div>
+          </div>`;
 
         if (index + 1 < array.length) {
-          html += '<div class="transactions__list-row--empty">&nbsp;</div>'
+          html += '<div class="transactions__list-row--empty">&nbsp;</div>';
         }
 
         transactionsList.append(html);
       });
     } catch (err) {
-      var html = '<div class="error">' +
-                   '<div class="error-header">Error!</div>' +
-                   '<div class="error-message">Please check cell <strong>' + transactionsHistoryData.jsonCellA1Notation + '</strong> on <strong>Transactions History</strong> tab</div>' +
-                   '<div class="error-message">' + err + '</div>'
-                 '</div>';
-
       transactionsList.empty();
-      transactionsList.append(html);
+      transactionsList.append(`
+        <div class="error">
+          <div class="error-header">Error!</div>
+          <div class="error-message">Please check cell <strong>${transactionsHistoryData.jsonCellA1Notation}</strong> on <strong>Transactions History</strong> tab</div>
+          <div class="error-message">${err}</div>
+        </div>`);
     }
 
     if (plannedPaymentsSum > 0) {
-      var html = '<div class="planned-payment-message">Current Planned Payments sum is: <strong>' + plannedPaymentsSum + '</strong></div>';
-
-      transactionsList.append(html);
+      transactionsSummary.html(`Current Planned Payments sum is: <strong>${plannedPaymentsSum.toFixed(2)}</strong>`);
+      transactionsSummary.show();
     }
+
+    reloadBtn.removeAttr('disabled');
   };
 
-  var loadTransactionsHistory = function() {
+  const loadTransactionsHistory = () => {
+    reloadBtn.attr('disabled', 'disabled');
     showLoadingLabel();
 
     google.script.run
       .withSuccessHandler(showTransactionsHistory)
+      .withFailureHandler(() => reloadBtn.removeAttr('disabled'))
       .getTransactionsHistoryData();
   };
 
-  $('.transactions__reload-btn').click(loadTransactionsHistory);
+  reloadBtn.click(loadTransactionsHistory);
 
   /***************
    * Start point *

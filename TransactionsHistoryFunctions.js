@@ -70,7 +70,6 @@ function addTransationHistoryRow(rawDataRow, summaryBalanceSheet, transactionsHi
     (value) => value.toString() === EMPTY_STRING,
   ) - 1;
 
-  // TODO: Can be simplified to getRange(rowNum, colNum) only. Should be tested
   const cell = transactionsHistorySheet.getRange(rowNum, colNum);
   const cellValue = cell.getValue();
 
