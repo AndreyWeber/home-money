@@ -148,6 +148,7 @@ function createSandbox() {
   vm.createContext(context);
 
   // Load source files in dependency order
+  loadFile(context, 'Types.js');
   loadFile(context, 'Constants.js');
   loadFile(context, 'HelperFunctions.js');
   loadFile(context, 'RawDataFunctions.js');
