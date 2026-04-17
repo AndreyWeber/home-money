@@ -153,6 +153,7 @@ function createSandbox() {
   loadFile(context, 'HelperFunctions.js');
   loadFile(context, 'RawDataFunctions.js');
   loadFile(context, 'MetadataFunctions.js');
+  loadFile(context, 'TransactionsHistoryFunctions.js');
   loadFile(context, 'Main.js');
 
   return context;
