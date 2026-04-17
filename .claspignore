@@ -1,9 +1,9 @@
 # Test infrastructure
 jest.config.js
-tests/
+tests/**
 
 # Node / npm
-node_modules/
+node_modules/**
 package.json
 package-lock.json
 
